@@ -17,18 +17,21 @@
             <span class="link-text">Oasis</span>
         </a>
         <div class="profile">
-            <img src="https://i.pravatar.cc/150?u=a042581f4e29026704d" alt="User profile picture" class="profile-img">
-            <div class="profile-info">
-                <h4 class="profile-name">Alex Johnson</h4>
-                <p class="profile-detail">O+ | New York</p>
-            </div>
+            <a href="get-involved.html" class="profile-login-link">
+                <i class="fas fa-user-circle profile-icon-default"></i>
+                <div class="profile-info">
+                    <h4 class="profile-name">Sign In / Sign Up</h4>
+                </div>
+            </a>
         </div>
         <ul class="sidebar-nav">
             <li><a href="index.html"><i class="fas fa-home" aria-hidden="true"></i><span class="link-text">Home</span></a></li>
+            <li id="my-profile-nav-link" class="hidden"><a href="my-profile.html"><i class="fas fa-user-edit" aria-hidden="true"></i><span class="link-text">My Profile</span></a></li>
             <li><a href="get-involved.html" class="active"><i class="fas fa-hands-helping" aria-hidden="true"></i><span class="link-text">Get Involved</span></a></li>
             <li><a href="search-donors.html"><i class="fas fa-search" aria-hidden="true"></i><span class="link-text">Find Donors</span></a></li>
             <li><a href="leaderboard.html"><i class="fas fa-trophy" aria-hidden="true"></i><span class="link-text">Leaderboard</span></a></li>
             <li><a href="faqs.html"><i class="fas fa-question-circle" aria-hidden="true"></i><span class="link-text">FAQs</span></a></li>
+            <li><a href="admin-panel.html"><i class="fas fa-user-shield" aria-hidden="true"></i><span class="link-text">Admin</span></a></li>
         </ul>
         <div class="sidebar-footer">
             <div class="dark-mode-toggle">
@@ -52,6 +55,7 @@
                     <a href="get-involved.html" class="active">Get Involved</a>
                     <a href="search-donors.html">Find Donors</a>
                     <a href="faqs.html">FAQs</a>
+                    <a href="admin-panel.html">Admin</a>
                     <a href="leaderboard.html" class="icon-link" aria-label="Leaderboard"><i class="fas fa-trophy"></i></a>
                 </nav>
                 <a href="emergency-request.html" class="cta-button" aria-label="Make emergency blood request"><i class="fas fa-exclamation-triangle" aria-hidden="true"></i> Emergency</a>
@@ -65,6 +69,7 @@
             <a href="get-involved.html" class="active">Get Involved</a>
             <a href="search-donors.html">Find Donors</a>
             <a href="leaderboard.html">Leaderboard</a>
+            <a href="admin-panel.html">Admin</a>
             <a href="faqs.html">FAQs</a>
             <a href="emergency-request.html" class="cta-button">Emergency Request</a>
         </nav>
@@ -86,13 +91,13 @@
                         <button class="auth-tab active" data-form="login">Login</button>
                         <button class="auth-tab" data-form="signup">Sign Up</button>
                     </div>
-                    <form id="login-form" class="auth-form active">
+                    <form id="login-form" class="auth-form active" novalidate>
                         <div class="form-header" style="padding-bottom: 10px;"><h3><i class="fas fa-sign-in-alt"></i> Login to Your Account</h3></div>
                         <div class="form-group"><label for="login-email" class="form-label">Email</label><input type="email" id="login-email" class="form-input" required></div>
                         <div class="form-group"><label for="login-password" class="form-label">Password</label><input type="password" id="login-password" class="form-input" required></div>
                         <button type="submit" class="btn-submit">Login</button>
                     </form>
-                    <form id="signup-form" class="auth-form">
+                    <form id="signup-form" class="auth-form" novalidate>
                         <div class="form-header" style="padding-bottom: 10px;"><h3><i class="fas fa-user-plus"></i> Create an Account</h3></div>
                         <div class="form-group"><label for="signup-email" class="form-label">Email</label><input type="email" id="signup-email" class="form-input" required></div>
                         <div class="form-group"><label for="signup-password" class="form-label">Password</label><input type="password" id="signup-password" class="form-input" required></div>

@@ -33,6 +33,7 @@ import { ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/fireba
         '/my-profile.html': initializeMyProfilePage,
         '/admin-panel.html': initializeAdminPanel,
         '/emergency-request.html': initializeEmergencyRequestPage,
+        '/admin-login.html': initializeAdminLoginPage,
         '/leaderboard.html': initializeLeaderboard,
     };
 
@@ -51,14 +52,18 @@ import { ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/fireba
             const newDoc = parser.parseFromString(newContent, 'text/html');
             const newMain = newDoc.querySelector('#main-content');
             const newTitle = newDoc.querySelector('title').innerText;
+            const newBodyClass = newDoc.body.className;
 
             if (newMain) {
+                document.body.className = newBodyClass;
                 mainContent.innerHTML = newMain.innerHTML;
                 document.title = newTitle;
 
                 if (pushState) {
                     history.pushState({ path: url }, newTitle, url);
                 }
+
+                updateUI(auth.currentUser);
 
                 const pagePath = new URL(url, window.location.origin).pathname;
                 if (pageInitializers[pagePath]) {
@@ -72,27 +77,39 @@ import { ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/fireba
         }
     };
 
-    const updateActiveLink = (url) => {
-        const cleanUrl = url.split('/').pop() || 'index.html';
+    const updateActiveLink = (path) => {
+        // First, remove 'active' from all navigation links
         document.querySelectorAll('.sidebar-nav a, .nav-links a').forEach(link => {
-            const linkHref = link.getAttribute('href');
-            if (linkHref === cleanUrl || (cleanUrl === 'index.html' && linkHref === 'index.html')) {
-                link.classList.add('active');
-            } else {
-                link.classList.remove('active');
-            }
+            link.classList.remove('active');
         });
+
+        // Normalize the path to match the href attribute.
+        const targetFile = path.substring(path.lastIndexOf('/') + 1) || 'index.html';
+
+        // Add 'active' to the matching link(s)
+        document.querySelectorAll(`.sidebar-nav a[href="${targetFile}"], .nav-links a[href="${targetFile}"]`).forEach(link => {
+            link.classList.add('active');
+        });
+
+        // Special case for the root path to activate index.html links
+        if (path === '/') {
+            document.querySelectorAll(`.sidebar-nav a[href="index.html"], .nav-links a[href="index.html"]`).forEach(link => {
+                link.classList.add('active');
+            });
+        }
     };
 
     document.addEventListener('click', e => {
         const link = e.target.closest('a');
-        if (link && (link.matches('.sidebar-nav a, .nav-links a, .logo') || link.closest('.hero-buttons'))) {
+        if (link && (link.matches('.sidebar-nav a, .nav-links a, .logo, .profile-login-link') || link.closest('.hero-buttons'))) {
             e.preventDefault();
             const href = link.getAttribute('href');
+            const targetPath = new URL(href, window.location.origin).pathname;
+
             if (mobileSidebar.classList.contains('active')) {
                 toggleMobileMenu();
             }
-            if (href !== window.location.pathname) {
+            if (targetPath !== window.location.pathname) {
                 loadContent(href);
             }
         }
@@ -113,14 +130,9 @@ import { ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/fireba
         initializeHomepage();
     }
     initializeScrollAnimations();
+    updateActiveLink(window.location.pathname);
 
-    onAuthStateChanged(auth, user => {
-        if (user) {
-            updateUIForLoggedInUser(user);
-        } else {
-            updateUIForLoggedOutUser();
-        }
-    });
+    onAuthStateChanged(auth, user => updateUI(user));
 
     function initializeScrollAnimations() {
         const animatedElements = document.querySelectorAll('.animate-on-scroll');
@@ -182,11 +194,9 @@ import { ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/fireba
     }
 
     function initializeGetInvolvedPage() {
-        if (auth.currentUser) {
-            updateUIForLoggedInUser(auth.currentUser);
-        } else {
-            updateUIForLoggedOutUser();
-        }
+        // This function now only needs to set up listeners,
+        // as the global updateUI function handles showing/hiding content.
+        // The auth state is checked by the global listener and on every page load.
 
         const authContainer = document.getElementById('auth-container');
         if (authContainer) {
@@ -228,8 +238,9 @@ import { ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/fireba
         const loginForm = document.getElementById('login-form');
         loginForm?.addEventListener('submit', async (e) => {
             e.preventDefault();
-            const email = loginForm.querySelector('#login-email').value;
-            const password = loginForm.querySelector('#login-password').value;
+            const form = e.currentTarget;
+            const email = form.querySelector('#login-email').value;
+            const password = form.querySelector('#login-password').value;
             try {
                 const userCredential = await signInWithEmailAndPassword(auth, email, password);
                 console.log('Logged in:', userCredential.user);
@@ -472,54 +483,89 @@ import { ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/fireba
         }
     }
 
+    async function updateUI(user) {
+        if (user) {
+            await updateUIForLoggedInUser(user);
+        } else {
+            updateUIForLoggedOutUser();
+        }
+    }
+
     async function updateUIForLoggedInUser(user) {
-        document.getElementById('auth-container')?.classList.add('hidden');
-        const requestFormContainer = document.getElementById('request-form-container');
+        const donorDoc = await getDoc(doc(db, "donors", user.uid));
 
-        if (requestFormContainer) {
-            requestFormContainer.classList.remove('hidden');
+        if (document.body.classList.contains('page-get-involved')) {
+            const authContainer = document.getElementById('auth-container');
+            if (authContainer) authContainer.classList.add('hidden');
 
-            const userStatusHTML = `
-                <div class="info-box" id="user-status" style="margin-bottom: 30px; text-align: left;">
-                    <p>Logged in as: <strong>${user.email}</strong></p>
-                    <button id="logout-button" class="btn-form" style="float: right; margin-top: -35px;">Logout</button>
-                </div>
-            `;
-            
-            const requestFormHTML = `<div class="form-container">${getBloodRequestFormHTML()}</div>`;
-
-            requestFormContainer.innerHTML = userStatusHTML + requestFormHTML;
-
-            document.getElementById('logout-button')?.addEventListener('click', async () => {
-                await signOut(auth);
-                console.log('User signed out');
-                loadContent(window.location.pathname);
-            });
-            addBloodRequestFormListener();
+            const contentContainer = document.getElementById('request-form-container');
+            if (contentContainer) {
+                contentContainer.classList.remove('hidden');
+    
+                const userStatusHTML = `
+                    <div class="info-box" id="user-status" style="margin-bottom: 30px; text-align: left;">
+                        <p>Logged in as: <strong>${user.email}</strong></p>
+                        <button id="logout-button" class="btn-form" style="float: right; margin-top: -35px;">Logout</button>
+                    </div>
+                `;
+                
+                if (donorDoc.exists()) {
+                    const requestFormHTML = `<div class="form-container">${getBloodRequestFormHTML()}</div>`;
+                    contentContainer.innerHTML = userStatusHTML + requestFormHTML;
+                    addBloodRequestFormListener();
+                } else {
+                    const registrationFormHTML = `<div class="form-container">${getDonorRegistrationFormHTML()}</div>`;
+                    contentContainer.innerHTML = userStatusHTML + registrationFormHTML;
+                    initializeDonorRegisterForm();
+                }
+    
+                document.getElementById('logout-button')?.addEventListener('click', async () => {
+                    await signOut(auth);
+                    console.log('User signed out');
+                    loadContent(window.location.pathname);
+                });
+            }
         }
 
         const myProfileLink = document.getElementById('my-profile-nav-link');
         if (myProfileLink) myProfileLink.classList.remove('hidden');
 
-        const donorDoc = await getDoc(doc(db, "donors", user.uid));
         const profileContainer = document.querySelector('.desktop-sidebar .profile');
         if (profileContainer) {
             if (donorDoc.exists()) {
                 const donorData = donorDoc.data();
-                userStatusDiv.innerHTML = `
+
+                let ageText = '';
+                let age = 0;
+                if (donorData.dob && donorData.dob.toDate) {
+                    const birthDate = donorData.dob.toDate();
+                    const today = new Date();
+                    age = today.getFullYear() - birthDate.getFullYear();
+                    const m = today.getMonth() - birthDate.getMonth();
+                    if (m < 0 || (m === 0 && today.getDate() < birthDate.getDate())) {
+                        age--;
+                    }
+                }
+                profileContainer.innerHTML = `
                     <img src="${donorData.profilePictureUrl || 'https://i.pravatar.cc/150'}" alt="User profile picture" class="profile-img">
-                    <div class="profile-info">
-                        <h4 class="profile-name">${donorData.fullName}</h4>
-                        <p class="profile-detail">${donorData.bloodType} | ${donorData.city}</p>
+                    <div class="profile-info" style="text-align: center;">
+                        <h4 class="profile-name" style="margin-bottom: 5px;">${donorData.fullName}</h4>
+                        <div class="profile-detail-links">
+                            <a href="my-profile.html">Age: ${age > 0 ? age : 'N/A'}</a>
+                            <a href="my-profile.html">Blood: ${donorData.bloodType}</a>
+                            <a href="my-profile.html">City: ${donorData.city}</a>
+                        </div>
                     </div>
                 `;
             } else {
                 profileContainer.innerHTML = `
-                    <img src="https://i.pravatar.cc/150?u=${user.uid}" alt="User profile picture" class="profile-img">
-                    <div class="profile-info">
-                        <h4 class="profile-name">Welcome!</h4>
-                        <p class="profile-detail">${user.email}</p>
-                    </div>
+                    <a href="get-involved.html" class="profile-login-link">
+                        <i class="fas fa-user-circle profile-icon-default"></i>
+                        <div class="profile-info">
+                            <h4 class="profile-name">Welcome!</h4>
+                            <p class="profile-detail" style="font-size: 0.8rem; color: var(--primary-red);">Complete Your Profile</p>
+                        </div>
+                    </a>
                 `;
             }
         }
@@ -528,12 +574,13 @@ import { ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/fireba
     }
 
     function updateUIForLoggedOutUser() {
-        document.getElementById('auth-container')?.classList.remove('hidden');
-        const requestFormContainer = document.getElementById('request-form-container');
-
-        if (requestFormContainer) {
-            document.getElementById('auth-container')?.classList.remove('hidden');
-            requestFormContainer.classList.add('hidden');
+        if (document.body.classList.contains('page-get-involved')) {
+            const authContainer = document.getElementById('auth-container');
+            const contentContainer = document.getElementById('request-form-container');
+            if (authContainer) authContainer.classList.remove('hidden');
+            if (contentContainer) {
+                contentContainer.classList.add('hidden');
+            }
         }
 
         const myProfileLink = document.getElementById('my-profile-nav-link');
@@ -542,11 +589,12 @@ import { ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/fireba
         const profileContainer = document.querySelector('.desktop-sidebar .profile');
         if (profileContainer) {
             profileContainer.innerHTML = `
-                <img src="https://i.pravatar.cc/150?u=a042581f4e29026704d" alt="User profile picture" class="profile-img">
-                <div class="profile-info">
-                    <h4 class="profile-name">Alex Johnson</h4>
-                    <p class="profile-detail">O+ | New York</p>
-                </div>
+                <a href="get-involved.html" class="profile-login-link">
+                    <i class="fas fa-user-circle profile-icon-default"></i>
+                    <div class="profile-info">
+                        <h4 class="profile-name">Sign In / Sign Up</h4>
+                    </div>
+                </a>
             `;
         }
 
@@ -631,6 +679,48 @@ import { ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/fireba
         });
     }
 
+    function getDonorRegistrationFormHTML() {
+        return `
+            <form action="#" method="POST" id="registrationForm">
+                <div class="form-header">
+                    <h3><i class="fas fa-user-plus"></i> Become a Donor</h3>
+                    <p style="color: var(--gray-600); font-size: 0.9rem; margin-top: 10px;">Complete your profile to start saving lives.</p>
+                    <div class="progress-bar">
+                        <div class="progress"></div>
+                        <div class="step active" data-step="1"><div class="step-circle">1</div><div class="step-title">Personal</div></div>
+                        <div class="step" data-step="2"><div class="step-circle">2</div><div class="step-title">Contact</div></div>
+                        <div class="step" data-step="3"><div class="step-circle">3</div><div class="step-title">Medical</div></div>
+                    </div>
+                </div>
+                <div class="form-step active">
+                    <h4 class="form-step-title">Step 1: Personal Information</h4>
+                    <div class="form-group profile-picture-group">
+                        <label for="profile-picture" class="form-label">Profile Picture</label>
+                        <input type="file" id="profile-picture" name="profile-picture" class="form-input" accept="image/*">
+                        <img id="picture-preview" src="https://i.pravatar.cc/150" alt="Profile picture preview" class="profile-img-preview">
+                    </div>
+                    <div class="form-group"><label for="fullname" class="form-label">Full Name</label><input type="text" id="fullname" name="fullname" class="form-input" placeholder="John Doe" required><span class="error-message"></span></div>
+                    <div class="form-group"><label for="dob" class="form-label">Date of Birth</label><input type="date" id="dob" name="dob" class="form-input" required><span class="error-message"></span></div>
+                    <div class="form-group"><label for="gender" class="form-label">Gender</label><select id="gender" name="gender" class="form-select" required><option value="" disabled selected>Select your gender</option><option value="male">Male</option><option value="female">Female</option><option value="other">Prefer not to say</option></select><span class="error-message"></span></div>
+                    <div class="form-buttons"><button type="button" class="btn-form btn-next">Next <i class="fas fa-arrow-right"></i></button></div>
+                </div>
+                <div class="form-step">
+                    <h4 class="form-step-title">Step 2: Contact Details</h4>
+                    <div class="form-group"><label for="phone" class="form-label">Phone Number</label><input type="tel" id="phone" name="phone" class="form-input" placeholder="Your contact number" required><span class="error-message"></span></div>
+                    <div class="form-group"><label for="city" class="form-label">City / Town</label><input type="text" id="city" name="city" class="form-input" placeholder="e.g., New York" required><span class="error-message"></span></div>
+                    <div class="form-buttons"><button type="button" class="btn-form btn-prev"><i class="fas fa-arrow-left"></i> Previous</button><button type="button" class="btn-form btn-next">Next <i class="fas fa-arrow-right"></i></button></div>
+                </div>
+                <div class="form-step">
+                    <h4 class="form-step-title">Step 3: Medical Information</h4>
+                    <div class="form-group"><label for="bloodgroup-donor" class="form-label">Blood Group</label><select id="bloodgroup-donor" name="bloodgroup" class="form-select" required><option value="" disabled selected>Select blood group</option><option value="A+">A+</option><option value="A-">A-</option><option value="B+">B+</option><option value="B-">B-</option><option value="AB+">AB+</option><option value="AB-">AB-</option><option value="O+">O+</option><option value="O-">O-</option></select><span class="error-message"></span></div>
+                    <div class="form-group"><label for="last-donation" class="form-label">Last Donation Date (if any)</label><input type="date" id="last-donation" name="last-donation" class="form-input"><span class="error-message"></span></div>
+                    <div class="form-group"><label class="form-label">Have you had any major illnesses or surgeries in the past year?</label><textarea id="medical-history" name="medical-history" class="form-textarea" placeholder="Please provide details if yes."></textarea></div>
+                    <div class="form-buttons"><button type="button" class="btn-form btn-prev"><i class="fas fa-arrow-left"></i> Previous</button><button type="submit" class="btn-submit">Register as Donor</button></div>
+                </div>
+            </form>
+        `;
+    }
+
     function getBloodRequestFormHTML() {
         return `
             <form action="#" method="POST" id="bloodRequestForm" novalidate>
@@ -649,7 +739,7 @@ import { ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/fireba
             </form>
         `;
     }
-
+    
     function addBloodRequestFormListener() {
         const requestForm = document.getElementById('bloodRequestForm');
         if (!requestForm) return;
@@ -1043,9 +1133,16 @@ import { ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/fireba
 
         const donorData = donorSnap.data();
 
+        const dob = donorData.dob && donorData.dob.toDate ? donorData.dob.toDate().toISOString().split('T')[0] : '';
+
         container.innerHTML = `
             <form id="profile-edit-form" novalidate>
                 <div class="form-header"><h3>Edit Your Profile</h3></div>
+                <div class="form-group profile-picture-group">
+                    <label for="profile-picture" class="form-label">Profile Picture</label>
+                    <input type="file" id="profile-picture" name="profile-picture" class="form-input" accept="image/*">
+                    <img id="picture-preview" src="${donorData.profilePictureUrl || 'https://i.pravatar.cc/150'}" alt="Profile picture preview" class="profile-img-preview">
+                </div>
                 <div class="form-group">
                     <label for="profile-fullname" class="form-label">Full Name</label>
                     <input type="text" id="profile-fullname" name="fullName" class="form-input" value="${donorData.fullName}" required disabled>
@@ -1057,6 +1154,14 @@ import { ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/fireba
                 <div class="form-group">
                     <label for="profile-city" class="form-label">City</label>
                     <input type="text" id="profile-city" name="city" class="form-input" value="${donorData.city}" required disabled>
+                </div>
+                <div class="form-group">
+                    <label for="profile-dob" class="form-label">Date of Birth</label>
+                    <input type="date" id="profile-dob" name="dob" class="form-input" value="${dob}" required disabled>
+                </div>
+                <div class="form-group">
+                    <label for="profile-bloodgroup" class="form-label">Blood Group</label>
+                    <select id="profile-bloodgroup" name="bloodType" class="form-select" disabled><option value="A+" ${donorData.bloodType === 'A+' ? 'selected' : ''}>A+</option><option value="A-" ${donorData.bloodType === 'A-' ? 'selected' : ''}>A-</option><option value="B+" ${donorData.bloodType === 'B+' ? 'selected' : ''}>B+</option><option value="B-" ${donorData.bloodType === 'B-' ? 'selected' : ''}>B-</option><option value="AB+" ${donorData.bloodType === 'AB+' ? 'selected' : ''}>AB+</option><option value="AB-" ${donorData.bloodType === 'AB-' ? 'selected' : ''}>AB-</option><option value="O+" ${donorData.bloodType === 'O+' ? 'selected' : ''}>O+</option><option value="O-" ${donorData.bloodType === 'O-' ? 'selected' : ''}>O-</option></select>
                 </div>
                 <div class="form-group">
                     <label for="profile-availability" class="form-label">Availability</label>
@@ -1075,6 +1180,15 @@ import { ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/fireba
         const editBtn = document.getElementById('edit-profile-btn');
         const buttonsContainer = document.getElementById('profile-buttons');
         const inputs = form.querySelectorAll('input, select');
+        const pictureInput = form.querySelector('#profile-picture');
+        const picturePreview = form.querySelector('#picture-preview');
+
+        pictureInput?.addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (file) {
+                picturePreview.src = URL.createObjectURL(file);
+            }
+        });
 
         editBtn.addEventListener('click', () => {
             inputs.forEach(input => input.disabled = false);
@@ -1095,12 +1209,27 @@ import { ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/fireba
                 return;
             }
 
+            const file = pictureInput.files[0];
             const updatedData = {
                 fullName: form.querySelector('#profile-fullname').value,
                 phone: form.querySelector('#profile-phone').value,
                 city: form.querySelector('#profile-city').value,
                 availability: form.querySelector('#profile-availability').value,
+                dob: new Date(form.querySelector('#profile-dob').value),
+                bloodType: form.querySelector('#profile-bloodgroup').value,
             };
+
+            if (file) {
+                try {
+                    const storageRef = ref(storage, `profile-pictures/${user.uid}/${file.name}`);
+                    const snapshot = await uploadBytes(storageRef, file);
+                    updatedData.profilePictureUrl = await getDownloadURL(snapshot.ref);
+                } catch (error) {
+                    console.error("Error uploading new profile picture:", error);
+                    alert("Could not upload new profile picture. Please try again.");
+                    return;
+                }
+            }
 
             try {
                 await updateDoc(donorRef, updatedData);
@@ -1148,6 +1277,33 @@ import { ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/fireba
             await addDoc(collection(db, "requests"), requestData);
             emergencyForm.closest('.form-container').innerHTML = `<div class="form-header"><h3>Alert Sent!</h3></div><div class="info-box"><p><i class="fas fa-check-circle"></i> The emergency alert has been broadcast to all compatible donors in the area.</p></div>`;
         });
+    }
+
+    function initializeAdminLoginPage() {
+        const adminLoginForm = document.getElementById('admin-login-form');
+        if (adminLoginForm) {
+            adminLoginForm.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                const email = adminLoginForm.querySelector('#admin-email').value;
+                const password = adminLoginForm.querySelector('#admin-password').value;
+                try {
+                    await signInWithEmailAndPassword(auth, email, password);
+                    const user = auth.currentUser;
+                    if (user) {
+                        const idTokenResult = await user.getIdTokenResult(true); // Force refresh
+                        if (idTokenResult.claims.admin) {
+                            loadContent('/admin-panel.html');
+                        } else {
+                            await signOut(auth);
+                            alert('Access Denied. You do not have administrative privileges.');
+                        }
+                    }
+                } catch (error) {
+                    console.error("Admin login failed:", error);
+                    alert(`Login failed. Please check your credentials.`);
+                }
+            });
+        }
     }
 
     function initializeLeaderboard() {
