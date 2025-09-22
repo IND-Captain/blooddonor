@@ -1666,3 +1666,33 @@ body.dark-mode .activity-text {
 body.dark-mode .activity-time {
     color: var(--dm-text-secondary);
 }
+
+.auth-tabs {
+    display: flex;
+    margin-bottom: 30px;
+    border-radius: 8px;
+    background: var(--gray-100);
+    padding: 5px;
+}
+.auth-tab {
+    flex: 1;
+    padding: 12px;
+    border: none;
+    background: transparent;
+    cursor: pointer;
+    font-weight: 600;
+    color: var(--gray-600);
+    border-radius: 6px;
+    transition: all 0.3s ease;
+}
+.auth-tab.active {
+    background: var(--white);
+    color: var(--primary-red);
+    box-shadow: var(--shadow-sm);
+}
+.auth-form { display: none; }
+.auth-form.active { display: block; }
+
+body.dark-mode .auth-tabs { background: var(--dm-bg); }
+body.dark-mode .auth-tab { color: var(--dm-text-secondary); }
+body.dark-mode .auth-tab.active { background: var(--dm-surface); color: var(--primary-red); }

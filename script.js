@@ -188,7 +188,24 @@ import { ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/fireba
             updateUIForLoggedOutUser();
         }
 
-        initializeDonorRegisterForm();
+        const authContainer = document.getElementById('auth-container');
+        if (authContainer) {
+            const tabs = authContainer.querySelectorAll('.auth-tab');
+            const forms = authContainer.querySelectorAll('.auth-form');
+    
+            tabs.forEach(tab => {
+                tab.addEventListener('click', () => {
+                    const formName = tab.dataset.form;
+    
+                    tabs.forEach(t => t.classList.remove('active'));
+                    tab.classList.add('active');
+    
+                    forms.forEach(form => {
+                        form.classList.toggle('active', form.id === `${formName}-form`);
+                    });
+                });
+            });
+        }
     
         const signupForm = document.getElementById('signup-form');
         signupForm?.addEventListener('submit', async (e) => {
@@ -289,15 +306,12 @@ import { ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/fireba
 
                 try {
                     await setDoc(doc(db, "donors", auth.currentUser.uid), donorData);
-                    await updateUIForLoggedInUser(auth.currentUser); // Refresh sidebar with new info
+                    await updateUIForLoggedInUser(auth.currentUser);
                     console.log("Donor registered successfully!");
                 } catch (error) {
                     console.error("Error registering donor: ", error);
                     alert("There was an error with your registration. Please try again.");
                 }
-                
-                const formContainer = registrationForm.closest('.form-container');
-                formContainer.innerHTML = `<div class="form-header"><h3>Registration Complete!</h3></div><div class="info-box" style="text-align: center;"><p><i class="fas fa-check-circle"></i> Thank you for becoming a donor! You are now part of a life-saving community.</p></div>`;
             });
 
             const updateFormSteps = () => {
@@ -460,43 +474,39 @@ import { ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/fireba
 
     async function updateUIForLoggedInUser(user) {
         document.getElementById('auth-container')?.classList.add('hidden');
-        const formsContainer = document.getElementById('forms-container');
-        const donorDoc = await getDoc(doc(db, "donors", user.uid));
+        const requestFormContainer = document.getElementById('request-form-container');
 
-        if (formsContainer) {
-            formsContainer.classList.remove('hidden');
-            const userStatusDiv = formsContainer.querySelector('#user-status');
+        if (requestFormContainer) {
+            requestFormContainer.classList.remove('hidden');
 
-            const registrationFormContainer = document.getElementById('registrationForm')?.closest('.form-container');
-            if (registrationFormContainer) {
-                if (donorDoc.exists()) {
-                    registrationFormContainer.innerHTML = `<div class="info-box"><p><i class="fas fa-check-circle"></i> You are already registered as a donor. Thank you for your commitment! You can manage your profile from the "My Profile" page.</p></div>`;
-                } else {
-                    registrationFormContainer.style.display = 'block';
-                }
-            }
-
-            if (userStatusDiv) {
-                userStatusDiv.innerHTML = `
-                <p>Logged in as: <strong>${user.email}</strong></p>
-                <button id="logout-button" class="btn-form" style="float: right; margin-top: -35px;">Logout</button>
+            const userStatusHTML = `
+                <div class="info-box" id="user-status" style="margin-bottom: 30px; text-align: left;">
+                    <p>Logged in as: <strong>${user.email}</strong></p>
+                    <button id="logout-button" class="btn-form" style="float: right; margin-top: -35px;">Logout</button>
+                </div>
             `;
-                document.getElementById('logout-button')?.addEventListener('click', async () => {
-                    await signOut(auth);
-                    console.log('User signed out');
-                    loadContent(window.location.pathname);
-                });
-            }
+            
+            const requestFormHTML = `<div class="form-container">${getBloodRequestFormHTML()}</div>`;
+
+            requestFormContainer.innerHTML = userStatusHTML + requestFormHTML;
+
+            document.getElementById('logout-button')?.addEventListener('click', async () => {
+                await signOut(auth);
+                console.log('User signed out');
+                loadContent(window.location.pathname);
+            });
+            addBloodRequestFormListener();
         }
 
         const myProfileLink = document.getElementById('my-profile-nav-link');
         if (myProfileLink) myProfileLink.classList.remove('hidden');
 
+        const donorDoc = await getDoc(doc(db, "donors", user.uid));
         const profileContainer = document.querySelector('.desktop-sidebar .profile');
         if (profileContainer) {
             if (donorDoc.exists()) {
                 const donorData = donorDoc.data();
-                profileContainer.innerHTML = `
+                userStatusDiv.innerHTML = `
                     <img src="${donorData.profilePictureUrl || 'https://i.pravatar.cc/150'}" alt="User profile picture" class="profile-img">
                     <div class="profile-info">
                         <h4 class="profile-name">${donorData.fullName}</h4>
@@ -519,9 +529,11 @@ import { ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/fireba
 
     function updateUIForLoggedOutUser() {
         document.getElementById('auth-container')?.classList.remove('hidden');
-        const formsContainer = document.getElementById('forms-container');
-        if (formsContainer) {
-            formsContainer.classList.add('hidden');
+        const requestFormContainer = document.getElementById('request-form-container');
+
+        if (requestFormContainer) {
+            document.getElementById('auth-container')?.classList.remove('hidden');
+            requestFormContainer.classList.add('hidden');
         }
 
         const myProfileLink = document.getElementById('my-profile-nav-link');
@@ -616,6 +628,72 @@ import { ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/fireba
 
             await addDoc(collection(db, "requests"), requestData);
             form.closest('.modal-content').innerHTML = `<div class="form-header"><h3>Request Sent!</h3></div><div class="info-box"><p><i class="fas fa-check-circle"></i> Your request has been sent to ${donorName}. They will be notified to respond.</p></div>`;
+        });
+    }
+
+    function getBloodRequestFormHTML() {
+        return `
+            <form action="#" method="POST" id="bloodRequestForm" novalidate>
+                <div class="form-header">
+                    <h3><i class="fas fa-tint"></i> Request Blood</h3>
+                    <p style="color: var(--gray-600); font-size: 0.9rem; margin-top: 10px;">For standard, non-emergency requests.</p>
+                </div>
+                <div class="form-group"><label for="patient-name" class="form-label">Patient's Full Name</label><input type="text" id="patient-name" name="patient-name" class="form-input" placeholder="Enter patient's name" required><span class="error-message"></span></div>
+                <div class="form-group"><label for="bloodgroup-request" class="form-label">Required Blood Group</label><select id="bloodgroup-request" name="bloodgroup" class="form-select" required><option value="" disabled selected>Select blood group</option><option value="A+">A+</option><option value="A-">A-</option><option value="B+">B+</option><option value="B-">B-</option><option value="AB+">AB+</option><option value="AB-">AB-</option><option value="O+">O+</option><option value="O-">O-</option></select><span class="error-message"></span></div>
+                <div class="form-group"><label for="units" class="form-label">Required Units</label><input type="number" id="units" name="units" class="form-input" placeholder="Number of units needed" required min="1"><span class="error-message"></span></div>
+                <div class="form-group"><label for="hospital" class="form-label">Hospital Name & Address</label><input type="text" id="hospital" name="hospital" class="form-input" placeholder="e.g., City General Hospital, New York" required><span class="error-message"></span></div>
+                <div class="form-group"><label for="contact-person" class="form-label">Contact Person</label><input type="text" id="contact-person" name="contact-person" class="form-input" placeholder="Name of the person to contact" required><span class="error-message"></span></div>
+                <div class="form-group"><label for="contact-phone" class="form-label">Contact Phone</label><input type="tel" id="contact-phone" name="contact-phone" class="form-input" placeholder="A phone number for contact" required><span class="error-message"></span></div>
+                <div class="form-group"><label for="reason" class="form-label">Reason for Request</label><textarea id="reason" name="reason" class="form-textarea" placeholder="Briefly describe the reason (e.g., Surgery, Accident)"></textarea></div>
+                <div class="form-group"><button type="submit" class="btn-submit"><i class="fas fa-paper-plane" aria-hidden="true"></i> Submit Request</button></div>
+            </form>
+        `;
+    }
+
+    function addBloodRequestFormListener() {
+        const requestForm = document.getElementById('bloodRequestForm');
+        if (!requestForm) return;
+
+        requestForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            if (!validateForm(requestForm)) {
+                alert("Please fill out all required fields correctly.");
+                return;
+            }
+            if (!auth.currentUser) {
+                alert("You must be logged in to make a request.");
+                return;
+            }
+
+            const formData = new FormData(requestForm);
+            const requestData = {
+                requesterId: auth.currentUser.uid,
+                patientName: formData.get('patient-name'),
+                bloodType: formData.get('bloodgroup'),
+                unitsRequired: Number(formData.get('units')),
+                hospitalName: formData.get('hospital'),
+                city: formData.get('hospital').split(',')[1]?.trim() || 'Unknown',
+                isEmergency: false,
+                status: 'pending',
+                createdAt: new Date(),
+            };
+
+            try {
+                const docRef = await addDoc(collection(db, "requests"), requestData);
+                console.log("Request submitted with ID: ", docRef.id);
+                const formContainer = requestForm.closest('.form-container');
+                formContainer.innerHTML = `
+                    <div class="form-header">
+                        <h3>Thank You!</h3>
+                    </div>
+                    <div class="info-box" style="text-align: center;">
+                        <p><i class="fas fa-check-circle"></i> Your blood request has been submitted. Our system will now find and notify compatible donors.</p>
+                    </div>
+                `;
+            } catch (error) {
+                console.error("Error adding request: ", error);
+                alert("There was an error submitting your request. Please try again.");
+            }
         });
     }
 
