@@ -124,6 +124,7 @@ import { ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/fireba
     } else if (currentPagePath === '/' || currentPagePath.endsWith('index.html')) {
         initializeHomepage();
     }
+    initializeScrollAnimations(); // Make sure animations run on initial load
 
     // --- GLOBAL AUTH LISTENER ---
     // This runs once and keeps the UI in sync with the user's auth state.
@@ -170,6 +171,32 @@ import { ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/fireba
         }
 
         initializeActivityFeed();
+    }
+
+    function initializeActivityFeed() {
+        const feed = document.getElementById('activity-feed');
+        if (!feed) return;
+
+        // In a real app, this would fetch data from Firestore
+        const mockActivities = [
+            { icon: 'fa-user-plus', text: '<strong>John D.</strong> just registered as a new donor in <strong>New York</strong>.', time: '5m ago' },
+            { icon: 'fa-tint', text: 'A request for <strong>A+</strong> blood was fulfilled in <strong>Chicago</strong>.', time: '12m ago' },
+            { icon: 'fa-check-circle', text: '<strong>Jane S.</strong> became a <strong>Verified Donor</strong>.', time: '28m ago' },
+            { icon: 'fa-user-plus', text: '<strong>Mike P.</strong> just registered as a new donor in <strong>Los Angeles</strong>.', time: '45m ago' },
+            { icon: 'fa-tint', text: 'An emergency request for <strong>O-</strong> was created in <strong>New York</strong>.', time: '1h ago' },
+        ];
+
+        feed.innerHTML = ''; // Clear existing
+        mockActivities.forEach(activity => {
+            const item = document.createElement('li');
+            item.className = 'activity-item';
+            item.innerHTML = `
+                <i class="fas ${activity.icon} activity-icon"></i>
+                <div class="activity-text">${activity.text}</div>
+                <div class="activity-time">${activity.time}</div>
+            `;
+            feed.appendChild(item);
+        });
     }
 
     function initializeGetInvolvedPage() {
