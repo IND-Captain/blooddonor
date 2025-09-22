@@ -1,5 +1,10 @@
-document.addEventListener('DOMContentLoaded', () => {
-    // --- Common Elements ---
+import { db, auth, storage } from './firebase-config.js';
+import { collection, getDocs, addDoc, setDoc, doc, getDoc, updateDoc, query, where, orderBy, limit, onSnapshot } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-firestore.js";
+import { getFunctions, httpsCallable } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-functions.js";
+import { createUserWithEmailAndPassword, signInWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-auth.js";
+import { ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-storage.js";
+
+    const mainContent = document.getElementById('main-content');
     const header = document.getElementById('header');
     const menuToggle = document.getElementById('menuToggle');
     const mobileSidebar = document.getElementById('mobileSidebar');
@@ -7,6 +12,1025 @@ document.addEventListener('DOMContentLoaded', () => {
     const body = document.body;
     const desktopSidebar = document.querySelector('.desktop-sidebar');
     const darkModeToggle = document.getElementById('darkModeToggle');
+
+    // --- BLOOD COMPATIBILITY RULES ---
+    const bloodCompatibility = {
+        'A+': ['A+', 'A-', 'O+', 'O-'],
+        'A-': ['A-', 'O-'],
+        'B+': ['B+', 'B-', 'O+', 'O-'],
+        'B-': ['B-', 'O-'],
+        'AB+': ['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'], // Universal Recipient
+        'AB-': ['A-', 'B-', 'AB-', 'O-'],
+        'O+': ['O+', 'O-'],
+        'O-': ['O-'], // Universal Donor
+    };
+
+    // --- SPA & Routing Logic ---
+
+    const pageInitializers = {
+        '/': initializeHomepage,
+        '/index.html': initializeHomepage,
+        '/get-involved.html': initializeGetInvolvedPage,
+        '/search-donors.html': initializeSearchDonors,
+        '/faqs.html': initializeFaqs,
+        '/my-profile.html': initializeMyProfilePage,
+        '/admin-panel.html': initializeAdminPanel,
+        '/emergency-request.html': initializeEmergencyRequestPage,
+        '/leaderboard.html': initializeLeaderboard,
+    };
+
+    const loadContent = async (url, pushState = true) => {
+        try {
+            // Default to index.html if URL is just "/"
+            const fetchUrl = url === '/' ? '/index.html' : url;
+            const response = await fetch(fetchUrl);
+            if (!response.ok) {
+                console.error("Page not found:", url);
+                // Optionally, load a 404 page content
+                mainContent.innerHTML = `<section class="page-header"><div class="container"><h1>404 - Page Not Found</h1><p>Sorry, the page you are looking for does not exist.</p></div></section>`;
+                return;
+            }
+
+            const newContent = await response.text();
+            const parser = new DOMParser();
+            const newDoc = parser.parseFromString(newContent, 'text/html');
+            const newMain = newDoc.querySelector('#main-content');
+            const newTitle = newDoc.querySelector('title').innerText;
+
+            if (newMain) {
+                mainContent.innerHTML = newMain.innerHTML;
+                document.title = newTitle;
+
+                if (pushState) {
+                    history.pushState({ path: url }, newTitle, url);
+                }
+
+                // Run page-specific scripts
+                const pagePath = new URL(url, window.location.origin).pathname;
+                if (pageInitializers[pagePath]) {
+                    pageInitializers[pagePath]();
+                }
+                // Always run scroll animations for new content
+                initializeScrollAnimations();
+                updateActiveLink(url);
+            }
+        } catch (error) {
+            console.error('Error loading page:', error);
+        }
+    };
+
+    const updateActiveLink = (url) => {
+        const cleanUrl = url.split('/').pop() || 'index.html';
+        document.querySelectorAll('.sidebar-nav a, .nav-links a').forEach(link => {
+            const linkHref = link.getAttribute('href');
+            if (linkHref === cleanUrl || (cleanUrl === 'index.html' && linkHref === 'index.html')) {
+                link.classList.add('active');
+            } else {
+                link.classList.remove('active');
+            }
+        });
+    };
+
+    // Handle clicks on all navigation links
+    document.addEventListener('click', e => {
+        const link = e.target.closest('a');
+        if (link && (link.matches('.sidebar-nav a, .nav-links a, .logo') || link.closest('.hero-buttons'))) {
+            e.preventDefault();
+            const href = link.getAttribute('href');
+            // Close mobile menu if open
+            if (mobileSidebar.classList.contains('active')) {
+                toggleMobileMenu();
+            }
+            if (href !== window.location.pathname) {
+                loadContent(href);
+            }
+        }
+    });
+
+    // Handle browser back/forward
+    window.addEventListener('popstate', e => {
+        if (e.state && e.state.path) {
+            loadContent(e.state.path, false);
+        } else {
+            // Fallback for initial state
+            loadContent(location.pathname, false);
+        }
+    });
+
+    // Run initializer for the current page that was loaded directly
+    const currentPagePath = window.location.pathname;
+    if (pageInitializers[currentPagePath]) {
+        pageInitializers[currentPagePath]();
+    } else if (currentPagePath === '/' || currentPagePath.endsWith('index.html')) {
+        initializeHomepage();
+    }
+
+    // --- GLOBAL AUTH LISTENER ---
+    // This runs once and keeps the UI in sync with the user's auth state.
+    onAuthStateChanged(auth, user => {
+        if (user) {
+            updateUIForLoggedInUser(user);
+        } else {
+            updateUIForLoggedOutUser();
+        }
+    });
+
+    // --- Page Initializer Functions ---
+
+    function initializeScrollAnimations() {
+        const animatedElements = document.querySelectorAll('.animate-on-scroll');
+        if (animatedElements.length > 0) {
+            const observer = new IntersectionObserver((entries) => {
+                entries.forEach(entry => {
+                    if (entry.isIntersecting) {
+                        entry.target.classList.add('in-view');
+                    }
+                });
+            }, { threshold: 0.1 });
+
+            animatedElements.forEach(el => observer.observe(el));
+        }
+    }
+
+    function initializeHomepage() {
+        // 5. Homepage: Animated counter for statistics
+        const statNumbers = document.querySelectorAll('.stat-number');
+        if (statNumbers.length > 0) {
+            const statObserver = new IntersectionObserver((entries, observer) => {
+                entries.forEach(entry => {
+                    if (entry.isIntersecting && !entry.target.classList.contains('animated')) {
+                        animateCounter(entry.target);
+                        entry.target.classList.add('animated');
+                        observer.unobserve(entry.target); // Stop observing after animation
+                    }
+                });
+            }, { threshold: 0.5 });
+
+            statNumbers.forEach(stat => statObserver.observe(stat));
+        }
+
+        initializeActivityFeed();
+    }
+
+    function initializeGetInvolvedPage() {
+        // 1. Handle multi-step donor registration form
+        initializeDonorRegisterForm();
+    
+        // 2. Handle standard blood request form
+        const requestForm = document.querySelector('#bloodRequestForm');
+        if (requestForm) {
+            // Auth form handlers
+            const signupForm = document.getElementById('signup-form');
+            signupForm?.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                const email = signupForm.querySelector('#signup-email').value;
+                const password = signupForm.querySelector('#signup-password').value;
+                try {
+                    const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+                    // This will trigger onAuthStateChanged
+                    console.log('Signed up:', userCredential.user);
+                    // You might want to create a user document in Firestore here
+                    await setDoc(doc(db, "users", userCredential.user.uid), {
+                        email: userCredential.user.email,
+                        role: 'donor', // default role
+                        createdAt: new Date()
+                    });
+                } catch (error) {
+                    alert(error.message);
+                }
+            });
+
+            const loginForm = document.getElementById('login-form');
+            loginForm?.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                const email = loginForm.querySelector('#login-email').value;
+                const password = loginForm.querySelector('#login-password').value;
+                try {
+                    const userCredential = await signInWithEmailAndPassword(auth, email, password);
+                    // This will trigger onAuthStateChanged
+                    console.log('Logged in:', userCredential.user);
+                } catch (error) {
+                    alert(error.message);
+                }
+            });
+
+            requestForm.addEventListener('submit', async (e) => {
+                e.preventDefault();
+
+                if (!validateForm(requestForm)) {
+                    alert("Please fill out all required fields correctly.");
+                    return;
+                }
+
+                if (!auth.currentUser) {
+                    alert("You must be logged in to make a request.");
+                    return;
+                }
+
+                const formData = new FormData(requestForm);
+                const requestData = {
+                    requesterId: auth.currentUser.uid, // Use the actual user's ID
+                    patientName: formData.get('patient-name'),
+                    bloodType: formData.get('bloodgroup'),
+                    unitsRequired: Number(formData.get('units')),
+                    hospitalName: formData.get('hospital'),
+                    city: formData.get('hospital').split(',')[1]?.trim() || 'Unknown', // Simple city extraction
+                    isEmergency: false,
+                    status: 'pending',
+                    createdAt: new Date(),
+                    // In a real app, you'd get GeoPoint from an address lookup API
+                    // location: new firebase.firestore.GeoPoint(lat, lng)
+                };
+
+                // WRITE TO FIREBASE
+                try {
+                    const docRef = await addDoc(collection(db, "requests"), requestData);
+                    console.log("Request submitted with ID: ", docRef.id);
+                } catch (error) {
+                    console.error("Error adding request: ", error);
+                    alert("There was an error submitting your request. Please try again.");
+                }
+                const formContainer = requestForm.closest('.form-container');
+                formContainer.innerHTML = `
+                    <div class="form-header">
+                        <h3>Thank You!</h3>
+                    </div>
+                    <div class="info-box" style="text-align: center;">
+                        <p><i class="fas fa-check-circle"></i> Your blood request has been submitted. Our system will now find and notify compatible donors.</p>
+                    </div>
+                `;
+                // This would trigger the onRequestCreate Cloud Function
+            });
+        }
+    }
+
+    function initializeDonorRegisterForm() {
+        // 6. Donor Registration: Multi-step form
+        const registrationForm = document.getElementById('registrationForm');
+        if (registrationForm) {
+            const formSteps = registrationForm.querySelectorAll('.form-step');
+            const nextButtons = registrationForm.querySelectorAll('.btn-next');
+            const prevButtons = registrationForm.querySelectorAll('.btn-prev');
+            const progress = registrationForm.querySelector('.progress-bar .progress');
+            const progressSteps = registrationForm.querySelectorAll('.progress-bar .step');
+            let currentStep = 0; // Step index starts at 0
+
+            // Image preview logic
+            const pictureInput = registrationForm.querySelector('#profile-picture');
+            const picturePreview = registrationForm.querySelector('#picture-preview');
+            pictureInput?.addEventListener('change', (e) => {
+                const file = e.target.files[0];
+                if (file) {
+                    picturePreview.src = URL.createObjectURL(file);
+                }
+            });
+
+            registrationForm.addEventListener('submit', async (e) => {
+                e.preventDefault();
+
+                if (!validateForm(registrationForm.querySelector('.form-step.active'))) {
+                    alert("Please ensure all fields in the current step are filled out correctly.");
+                    return;
+                }
+
+                if (!auth.currentUser) {
+                    alert("You must be logged in to register as a donor.");
+                    return;
+                }
+
+                // Handle file upload first
+                let profilePictureUrl = "https://i.pravatar.cc/150"; // Default
+                const file = pictureInput.files[0];
+                if (file) {
+                    try {
+                        const storageRef = ref(storage, `profile-pictures/${auth.currentUser.uid}/${file.name}`);
+                        const snapshot = await uploadBytes(storageRef, file);
+                        profilePictureUrl = await getDownloadURL(snapshot.ref);
+                        console.log('File uploaded successfully:', profilePictureUrl);
+                    } catch (error) {
+                        console.error("Error uploading profile picture:", error);
+                        alert("Could not upload profile picture. Please try again.");
+                        return; // Stop submission if upload fails
+                    }
+                }
+
+                const formData = new FormData(registrationForm);
+                const donorData = {
+                    // The UID comes from the authenticated user
+                    uid: auth.currentUser.uid, 
+                    fullName: formData.get('fullname'),
+                    dob: new Date(formData.get('dob')),
+                    gender: formData.get('gender'),
+                    email: auth.currentUser.email,
+                    phone: formData.get('phone'),
+                    city: formData.get('city'),
+                    bloodType: formData.get('bloodgroup'),
+                    profilePictureUrl: profilePictureUrl,
+                    lastDonationDate: formData.get('last-donation') ? new Date(formData.get('last-donation')) : null,
+                    isVerified: false, // Verification is an admin task
+                    availability: 'available',
+                    totalDonations: 0,
+                    createdAt: new Date()
+                };
+
+                // WRITE TO FIREBASE
+                try {
+                    // Use the user's UID as the document ID for a 1-to-1 mapping
+                    await setDoc(doc(db, "donors", auth.currentUser.uid), donorData);
+                    await updateUIForLoggedInUser(auth.currentUser); // Refresh sidebar with new info
+                    console.log("Donor registered successfully!");
+                } catch (error) {
+                    console.error("Error registering donor: ", error);
+                    alert("There was an error with your registration. Please try again.");
+                }
+                
+                const formContainer = registrationForm.closest('.form-container');
+                formContainer.innerHTML = `<div class="form-header"><h3>Registration Complete!</h3></div><div class="info-box" style="text-align: center;"><p><i class="fas fa-check-circle"></i> Thank you for becoming a donor! You are now part of a life-saving community.</p></div>`;
+            });
+
+            const updateFormSteps = () => {
+                formSteps.forEach((step, index) => {
+                    step.classList.toggle('active', index === currentStep);
+                });
+                updateProgressBar();
+            };
+
+            const updateProgressBar = () => {
+                progressSteps.forEach((step, index) => {
+                    if (index < currentStep) {
+                        step.classList.add('completed');
+                        step.classList.remove('active');
+                    } else if (index === currentStep) {
+                        step.classList.add('active');
+                        step.classList.remove('completed');
+                    } else {
+                        step.classList.remove('active', 'completed');
+                    }
+                });
+
+                const progressPercentage = (currentStep / (formSteps.length - 1)) * 100;
+                if (progress) progress.style.width = `${progressPercentage}%`;
+            };
+
+            nextButtons.forEach(button => {
+                button.addEventListener('click', () => {
+                    // Validate current step before proceeding
+                    const currentFormStep = button.closest('.form-step');
+                    if (!validateForm(currentFormStep)) {
+                        alert("Please fill out all required fields before proceeding.");
+                        return;
+                    }
+
+                    if (currentStep < formSteps.length - 1) {
+                        currentStep++;
+                        updateFormSteps();
+                    }
+                });
+            });
+
+            prevButtons.forEach(button => {
+                button.addEventListener('click', () => {
+                    if (currentStep > 0) {
+                        currentStep--;
+                        updateFormSteps();
+                    }
+                });
+            });
+
+            updateFormSteps();
+        }
+    }
+
+    async function initializeSearchDonors() {
+        const searchGrid = document.querySelector('.search-grid');
+        const searchForm = document.querySelector('.search-container');
+
+        // Initial render of all available donors
+        if (searchGrid) {
+            searchGrid.innerHTML = `<p class="search-results-message">Searching for available donors...</p>`;
+            const donorsCol = collection(db, 'donors');
+            const donorSnapshot = await getDocs(donorsCol);
+            const allDonors = donorSnapshot.docs.map(doc => ({id: doc.id, ...doc.data()}));
+            renderDonors(allDonors, searchGrid);
+        }
+
+        if (searchForm && searchGrid) {
+            searchForm.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                const requestedBloodGroup = searchForm.querySelector('#bloodgroup').value;
+                const city = searchForm.querySelector('#city').value;
+
+                searchGrid.innerHTML = `<p class="search-results-message">Searching for ${requestedBloodGroup} donors in ${city}...</p>`;
+
+                const compatibleBloodGroups = bloodCompatibility[requestedBloodGroup] || [];
+
+                // Build the Firestore query
+                const donorsRef = collection(db, "donors");
+                const q = query(donorsRef, 
+                    where("city", "==", city), 
+                    where("bloodType", "in", compatibleBloodGroups),
+                    where("availability", "==", "available")
+                );
+
+                const querySnapshot = await getDocs(q);
+                const filteredDonors = querySnapshot.docs.map(doc => ({id: doc.id, ...doc.data()}));
+                renderDonors(filteredDonors, searchGrid);
+            });
+        }
+    }
+
+    function renderDonors(donors, container) {
+        container.innerHTML = ''; // Clear previous results
+
+        if (donors.length === 0) {
+            container.innerHTML = `<p class="search-results-message">No donors found matching your criteria. Please try a different search.</p>`;
+            return;
+        }
+
+        donors.forEach(donor => {
+            const donorCard = document.createElement('div');
+            donorCard.className = 'donor-card';
+
+            const verificationStatus = donor.isVerified
+                ? `<div class="donor-info"><i class="fas fa-check-circle"></i> Verified Donor</div>`
+                : `<div class="donor-info"><i class="fas fa-times-circle" style="color: var(--gray-300);"></i> Not Verified</div>`;
+            
+            const availability = donor.availability === 'available'
+                ? `<div class="donor-info"><i class="fas fa-calendar-alt"></i> Available Now</div>`
+                : `<div class="donor-info"><i class="fas fa-calendar-times"></i> Not Available</div>`;
+
+            donorCard.innerHTML = `
+                <div class="donor-card-header">
+                    <div class="blood-type-icon">${donor.bloodType}</div>
+                    <h3 class="donor-card-name">${donor.fullName}</h3>
+                </div>
+                <div class="donor-card-body">
+                    <div class="donor-info"><i class="fas fa-map-marker-alt"></i> ${donor.city}</div>
+                    ${verificationStatus}
+                    ${availability}
+                </div>
+                <div class="donor-card-footer">
+                    <a href="#" class="btn-secondary">Request</a>
+                </div>
+            `;
+            container.appendChild(donorCard);
+        });
+    }
+
+    function initializeFaqs() {
+        // 7. FAQs Page: Accordion
+        const faqQuestions = document.querySelectorAll('.faq-question');
+        if (faqQuestions.length > 0) {
+            faqQuestions.forEach(question => {
+                question.addEventListener('click', () => {
+                    const answer = question.nextElementSibling;
+                    const isActive = question.classList.toggle('active');
+
+                    if (isActive) {
+                        answer.style.maxHeight = answer.scrollHeight + 'px';
+                    } else {
+                        answer.style.maxHeight = '0px';
+                    }
+                });
+            });
+        }
+    }
+
+    async function updateUIForLoggedInUser(user) {
+        // Update the Get Involved page forms
+        document.getElementById('auth-container')?.classList.add('hidden');
+        const formsContainer = document.getElementById('forms-container');
+        if (formsContainer) {
+            formsContainer.classList.remove('hidden');
+            const userStatusDiv = formsContainer.querySelector('#user-status');
+            if (userStatusDiv) {
+                userStatusDiv.innerHTML = `
+                <p>Logged in as: <strong>${user.email}</strong></p>
+                <button id="logout-button" class="btn-form" style="float: right; margin-top: -35px;">Logout</button>
+            `;
+                document.getElementById('logout-button')?.addEventListener('click', async () => {
+                    await signOut(auth);
+                    console.log('User signed out');
+                });
+            }
+        }
+
+        // Show "My Profile" link if user is logged in
+        const myProfileLink = document.getElementById('my-profile-nav-link');
+        if (myProfileLink) myProfileLink.classList.remove('hidden');
+
+        // Update the sidebar profile
+        const donorDoc = await getDoc(doc(db, "donors", user.uid));
+        const profileContainer = document.querySelector('.desktop-sidebar .profile');
+        if (profileContainer) {
+            if (donorDoc.exists()) {
+                const donorData = donorDoc.data();
+                profileContainer.innerHTML = `
+                    <img src="${donorData.profilePictureUrl || 'https://i.pravatar.cc/150'}" alt="User profile picture" class="profile-img">
+                    <div class="profile-info">
+                        <h4 class="profile-name">${donorData.fullName}</h4>
+                        <p class="profile-detail">${donorData.bloodType} | ${donorData.city}</p>
+                    </div>
+                `;
+            } else {
+                // User is logged in but hasn't created a donor profile yet
+                profileContainer.innerHTML = `<div class="profile-info" style="opacity:1; text-align:center;"><p>Welcome, ${user.email}!</p><p style="font-size:0.8rem;">Complete your donor profile.</p></div>`;
+            }
+        }
+    }
+
+    function updateUIForLoggedOutUser() {
+        // Update the Get Involved page
+        document.getElementById('auth-container')?.classList.remove('hidden');
+        const formsContainer = document.getElementById('forms-container');
+        if (formsContainer) {
+            formsContainer.classList.add('hidden');
+        }
+
+        // Hide "My Profile" link
+        const myProfileLink = document.getElementById('my-profile-nav-link');
+        if (myProfileLink) myProfileLink.classList.add('hidden');
+
+        // Reset the sidebar profile to its default state
+        const profileContainer = document.querySelector('.desktop-sidebar .profile');
+        if (profileContainer) {
+            profileContainer.innerHTML = `
+                <img src="https://i.pravatar.cc/150?u=a042581f4e29026704d" alt="User profile picture" class="profile-img">
+                <div class="profile-info">
+                    <h4 class="profile-name">Alex Johnson</h4>
+                    <p class="profile-detail">O+ | New York</p>
+                </div>
+            `;
+        }
+    }
+
+    function validateForm(form) {
+        let isValid = true;
+        const inputs = form.querySelectorAll('input[required], select[required], textarea[required]');
+
+        inputs.forEach(input => {
+            const formGroup = input.closest('.form-group');
+            const errorMessage = formGroup.querySelector('.error-message');
+            
+            if (!input.value.trim()) {
+                isValid = false;
+                formGroup.classList.add('invalid');
+                if (errorMessage) errorMessage.textContent = 'This field is required.';
+            } else if (input.type === 'email' && !/^\S+@\S+\.\S+$/.test(input.value)) {
+                isValid = false;
+                formGroup.classList.add('invalid');
+                if (errorMessage) errorMessage.textContent = 'Please enter a valid email address.';
+            } else if (input.type === 'number' && input.min && parseInt(input.value) < parseInt(input.min)) {
+                isValid = false;
+                formGroup.classList.add('invalid');
+                if (errorMessage) errorMessage.textContent = `Value must be at least ${input.min}.`;
+            }
+            else {
+                formGroup.classList.remove('invalid');
+                if (errorMessage) errorMessage.textContent = '';
+            }
+        });
+
+        return isValid;
+    }
+
+    async function initializeAdminPanel() {
+        const container = document.getElementById('admin-content-section');
+        if (!container) return;
+
+        const user = auth.currentUser;
+        if (!user) {
+            container.innerHTML = `<div class="info-box"><p>Please log in to access the admin panel.</p></div>`;
+            return;
+        }
+
+        const idTokenResult = await user.getIdTokenResult();
+        if (!idTokenResult.claims.admin) {
+            container.innerHTML = `<div class="info-box" style="border-color: var(--primary-red);"><p><i class="fas fa-exclamation-triangle"></i> Access Denied. You do not have administrative privileges.</p></div>`;
+            return;
+        }
+
+        // User is an admin, render the panel
+        container.innerHTML = `
+            <div class="admin-tabs">
+                <div class="admin-tab active" data-tab="donors">Donor Management</div>
+                <div class="admin-tab" data-tab="requests">Request Management</div>
+                <div class="admin-tab" data-tab="broadcast">Broadcast</div>
+                <div class="admin-tab" data-tab="reports">Reports</div>
+            </div>
+            <div id="donors-content" class="admin-tab-content active">
+                <h3>All Donors</h3>
+                <table class="admin-table" id="donors-table">
+                    <thead><tr><th>Name</th><th>Email</th><th>Role</th><th>Status</th><th>Actions</th></tr></thead>
+                    <tbody><tr><td colspan="5" style="text-align:center;">Loading users...</td></tr></tbody>
+                </table>
+            </div>
+            <div id="requests-content" class="admin-tab-content">
+                <h3>All Blood Requests</h3>
+                <table class="admin-table" id="requests-table">
+                    <thead><tr><th>Patient</th><th>Blood Type</th><th>City</th><th>Status</th><th>Date</th><th>Actions</th></tr></thead>
+                    <tbody><tr><td colspan="6" style="text-align:center;">Loading requests...</td></tr></tbody>
+                </table>
+            </div>
+            <div id="broadcast-content" class="admin-tab-content">
+                <h3>Send Broadcast Message</h3>
+                <form id="broadcast-form">
+                    <div class="form-group">
+                        <label for="broadcast-city" class="form-label">Select City</label>
+                        <select id="broadcast-city" class="form-select" required></select>
+                    </div>
+                    <div class="form-group">
+                        <label for="broadcast-message" class="form-label">Message</label>
+                        <textarea id="broadcast-message" class="form-textarea" required placeholder="Enter your message to donors..."></textarea>
+                    </div>
+                    <button type="submit" class="btn-submit">Send Broadcast</button>
+                </form>
+            </div>
+            <div id="reports-content" class="admin-tab-content">
+                <h3>Platform Analytics</h3>
+                <div class="stats-grid" style="padding-top: 20px;">
+                    <div class="stat-card"><div id="total-donors" class="stat-number">0</div><div class="stat-label">Total Donors</div></div>
+                    <div class="stat-card"><div id="total-requests" class="stat-number">0</div><div class="stat-label">Total Requests</div></div>
+                </div>
+            </div>
+        `;
+
+        // Tab switching logic
+        const tabs = container.querySelectorAll('.admin-tab');
+        const tabContents = container.querySelectorAll('.admin-tab-content');
+        tabs.forEach(tab => {
+            tab.addEventListener('click', () => {
+                tabs.forEach(t => t.classList.remove('active'));
+                tab.classList.add('active');
+                const target = tab.getAttribute('data-tab');
+                tabContents.forEach(content => {
+                    content.classList.toggle('active', content.id === `${target}-content`);
+                });
+            });
+        });
+
+        // Load data for tabs
+        await loadDonorsForAdmin();
+        loadRequestsForAdmin(); // Using onSnapshot for real-time updates
+        await initializeBroadcastForm();
+        await loadAdminReports();
+    }
+
+    async function loadDonorsForAdmin() {
+        const tableBody = document.querySelector('#donors-table tbody');
+        if (!tableBody) return;
+
+        // Fetch all users, then get their donor profile
+        const q = query(collection(db, "users"), orderBy("createdAt", "desc"));
+        const querySnapshot = await getDocs(q);
+
+        if (querySnapshot.empty) {
+            tableBody.innerHTML = `<tr><td colspan="5" style="text-align:center;">No users found.</td></tr>`;
+            return;
+        }
+
+        tableBody.innerHTML = '';
+        for (const docSnap of querySnapshot.docs) {
+            const user = docSnap.data();
+            const uid = docSnap.id;
+            const donorSnap = await getDoc(doc(db, "donors", uid));
+            const donor = donorSnap.exists() ? donorSnap.data() : {};
+            const row = document.createElement('tr');
+            row.dataset.uid = uid;
+
+            let statusHtml = '';
+            if (donor.availability === 'suspended') {
+                statusHtml = `<span style="color: var(--warning-orange); font-weight: bold;">Suspended</span>`;
+            } else if (donor.isVerified) {
+                statusHtml = `<span style="color: var(--success-green);">Verified</span>`;
+            } else {
+                statusHtml = `<span>Not Verified</span>`;
+            }
+
+            const actionsHtml = `
+                ${!donor.isVerified ? `<button class="btn-verify" data-uid="${uid}">Verify</button>` : ''}
+                <button class="btn-suspend" data-uid="${uid}" data-disabled="${donor.availability !== 'suspended'}">
+                    ${donor.availability !== 'suspended' ? 'Suspend' : 'Unsuspend'}
+                </button>
+                <button class="btn-change-role" data-uid="${uid}" data-current-role="${user.role}">Change Role</button>
+                <button class="btn-delete" data-uid="${uid}">Delete</button>
+            `;
+
+            row.innerHTML = `
+                <td>${donor.fullName || user.email}</td>
+                <td>${user.email}</td>
+                <td>${user.role || 'donor'}</td>
+                <td>${statusHtml}</td>
+                <td>${actionsHtml}</td>
+            `;
+            tableBody.appendChild(row);
+        }
+
+        // Add event listeners for all action buttons
+        tableBody.addEventListener('click', async (e) => {
+            const target = e.target;
+            const uid = target.dataset.uid;
+            if (!uid) return;
+
+            const functions = getFunctions();
+
+            if (target.classList.contains('btn-verify')) {
+                const donorRef = doc(db, "donors", uid);
+                await updateDoc(donorRef, { isVerified: true });
+                alert(`Donor ${uid} has been verified.`);
+                loadDonorsForAdmin(); // Refresh the list
+            }
+
+            if (target.classList.contains('btn-suspend')) {
+                const shouldDisable = target.dataset.disabled === 'true';
+                if (confirm(`Are you sure you want to ${shouldDisable ? 'suspend' : 'unsuspend'} this user?`)) {
+                    const suspendUser = httpsCallable(functions, 'suspendUser');
+                    await suspendUser({ uid, disabled: shouldDisable });
+                    loadDonorsForAdmin(); // Refresh the list
+                }
+            }
+
+            if (target.classList.contains('btn-delete')) {
+                if (confirm(`Are you sure you want to permanently delete this user? This action cannot be undone.`)) {
+                    const deleteUser = httpsCallable(functions, 'deleteUser');
+                    await deleteUser({ uid });
+                    target.closest('tr').remove(); // Remove from UI immediately
+                }
+            }
+
+            if (target.classList.contains('btn-change-role')) {
+                const currentRole = target.dataset.currentRole;
+                showRoleChangeModal(uid, currentRole);
+            }
+        });
+    }
+
+    function showRoleChangeModal(uid, currentRole) {
+        const modalOverlay = document.createElement('div');
+        modalOverlay.className = 'modal-overlay active';
+        modalOverlay.innerHTML = `
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3>Change Role for User ${uid}</h3>
+                    <button id="close-modal" style="background:none; border:none; font-size:1.5rem; cursor:pointer;">&times;</button>
+                </div>
+                <div class="form-group">
+                    <label for="role-select">New Role</label>
+                    <select id="role-select" class="form-select">
+                        <option value="donor" ${currentRole === 'donor' ? 'selected' : ''}>Donor</option>
+                        <option value="admin" ${currentRole === 'admin' ? 'selected' : ''}>Admin</option>
+                    </select>
+                </div>
+                <div class="form-buttons">
+                    <button id="save-role-btn" class="btn-submit">Save Role</button>
+                </div>
+            </div>
+        `;
+        document.body.appendChild(modalOverlay);
+
+        const closeModal = () => modalOverlay.remove();
+        modalOverlay.querySelector('#close-modal').addEventListener('click', closeModal);
+        modalOverlay.addEventListener('click', (e) => {
+            if (e.target === modalOverlay) closeModal();
+        });
+
+        document.getElementById('save-role-btn').addEventListener('click', async () => {
+            const newRole = document.getElementById('role-select').value;
+            if (confirm(`Are you sure you want to change this user's role to "${newRole}"?`)) {
+                const functions = getFunctions();
+                const changeUserRole = httpsCallable(functions, 'changeUserRole');
+                await changeUserRole({ uid, newRole });
+                alert('Role updated successfully!');
+                closeModal();
+                loadDonorsForAdmin(); // Refresh the list
+            }
+        });
+    }
+
+    function loadRequestsForAdmin() {
+        const tableBody = document.querySelector('#requests-table tbody');
+        if (!tableBody) return;
+
+        const q = query(collection(db, "requests"), orderBy("createdAt", "desc"));
+
+        onSnapshot(q, (querySnapshot) => {
+            if (querySnapshot.empty) {
+                tableBody.innerHTML = `<tr><td colspan="6" style="text-align:center;">No blood requests found.</td></tr>`;
+                return;
+            }
+
+            tableBody.innerHTML = '';
+            querySnapshot.forEach(docSnap => {
+                const request = docSnap.data();
+                const requestId = docSnap.id;
+                const row = document.createElement('tr');
+
+                const statusColors = {
+                    pending: '#F59E0B',
+                    fulfilled: '#10B981',
+                    closed: '#4B5563'
+                };
+
+                row.innerHTML = `
+                    <td>${request.patientName}</td>
+                    <td>${request.bloodType}</td>
+                    <td>${request.city}</td>
+                    <td><span class="status" style="background-color:${statusColors[request.status] || '#ccc'}; color:white;">${request.status}</span></td>
+                    <td>${request.createdAt.toDate().toLocaleDateString()}</td>
+                    <td>
+                        ${request.status === 'pending' ? `<button class="btn-delete" data-id="${requestId}">Close</button>` : ''}
+                    </td>
+                `;
+                tableBody.appendChild(row);
+            });
+
+            tableBody.querySelectorAll('.btn-delete').forEach(button => {
+                button.addEventListener('click', async () => {
+                    const requestId = button.dataset.id;
+                    await updateDoc(doc(db, "requests", requestId), { status: 'closed' });
+                    // The onSnapshot listener will automatically update the UI
+                });
+            });
+        });
+    }
+
+    async function loadAdminReports() {
+        const donorsSnapshot = await getDocs(collection(db, "donors"));
+        const requestsSnapshot = await getDocs(collection(db, "requests"));
+        document.getElementById('total-donors').textContent = donorsSnapshot.size;
+        document.getElementById('total-requests').textContent = requestsSnapshot.size;
+    }
+
+    async function initializeBroadcastForm() {
+        const citySelect = document.getElementById('broadcast-city');
+        const broadcastForm = document.getElementById('broadcast-form');
+        if (!citySelect || !broadcastForm) return;
+
+        // Populate city dropdown
+        const donorsSnapshot = await getDocs(collection(db, "donors"));
+        const cities = new Set();
+        donorsSnapshot.forEach(doc => {
+            cities.add(doc.data().city);
+        });
+
+        citySelect.innerHTML = '<option value="">Select a City</option>';
+        cities.forEach(city => {
+            const option = document.createElement('option');
+            option.value = city;
+            option.textContent = city;
+            citySelect.appendChild(option);
+        });
+
+        // Handle form submission
+        broadcastForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const city = citySelect.value;
+            const message = document.getElementById('broadcast-message').value;
+
+            if (!city || !message) {
+                alert("Please select a city and enter a message.");
+                return;
+            }
+
+            const functions = getFunctions();
+            const sendBroadcast = httpsCallable(functions, 'sendBroadcast');
+            const result = await sendBroadcast({ city, message });
+            alert(result.data.message);
+        });
+    }
+
+    async function initializeMyProfilePage() {
+        const user = auth.currentUser;
+        const container = document.getElementById('profile-form-container');
+
+        if (!user) {
+            container.innerHTML = `<p>You must be logged in to view your profile.</p>`;
+            return;
+        }
+
+        const donorRef = doc(db, "donors", user.uid);
+        const donorSnap = await getDoc(donorRef);
+
+        if (!donorSnap.exists()) {
+            container.innerHTML = `<p>You have not created a donor profile yet. Please go to the "Get Involved" page to register.</p>`;
+            return;
+        }
+
+        const donorData = donorSnap.data();
+
+        // Render the form
+        container.innerHTML = `
+            <form id="profile-edit-form" novalidate>
+                <div class="form-header"><h3>Edit Your Profile</h3></div>
+                <div class="form-group">
+                    <label for="profile-fullname" class="form-label">Full Name</label>
+                    <input type="text" id="profile-fullname" name="fullName" class="form-input" value="${donorData.fullName}" required disabled>
+                </div>
+                <div class="form-group">
+                    <label for="profile-phone" class="form-label">Phone</label>
+                    <input type="tel" id="profile-phone" name="phone" class="form-input" value="${donorData.phone}" required disabled>
+                </div>
+                <div class="form-group">
+                    <label for="profile-city" class="form-label">City</label>
+                    <input type="text" id="profile-city" name="city" class="form-input" value="${donorData.city}" required disabled>
+                </div>
+                <div class="form-group">
+                    <label for="profile-availability" class="form-label">Availability</label>
+                    <select id="profile-availability" name="availability" class="form-select" disabled>
+                        <option value="available" ${donorData.availability === 'available' ? 'selected' : ''}>Available</option>
+                        <option value="unavailable" ${donorData.availability === 'unavailable' ? 'selected' : ''}>Unavailable</option>
+                    </select>
+                </div>
+                <div id="profile-buttons" class="form-buttons">
+                    <button type="button" id="edit-profile-btn" class="btn-primary">Edit Profile</button>
+                </div>
+            </form>
+        `;
+
+        const form = document.getElementById('profile-edit-form');
+        const editBtn = document.getElementById('edit-profile-btn');
+        const buttonsContainer = document.getElementById('profile-buttons');
+        const inputs = form.querySelectorAll('input, select');
+
+        editBtn.addEventListener('click', () => {
+            // Switch to edit mode
+            inputs.forEach(input => input.disabled = false);
+            buttonsContainer.innerHTML = `
+                <button type="submit" class="btn-submit">Save Changes</button>
+                <button type="button" id="cancel-edit-btn" class="btn-form">Cancel</button>
+            `;
+
+            document.getElementById('cancel-edit-btn').addEventListener('click', () => {
+                // Re-initialize to reset the form to its original state
+                initializeMyProfilePage();
+            });
+        });
+
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            if (!validateForm(form)) {
+                alert("Please fill out all fields correctly.");
+                return;
+            }
+
+            const updatedData = {
+                fullName: form.querySelector('#profile-fullname').value,
+                phone: form.querySelector('#profile-phone').value,
+                city: form.querySelector('#profile-city').value,
+                availability: form.querySelector('#profile-availability').value,
+            };
+
+            try {
+                await updateDoc(donorRef, updatedData);
+                alert("Profile updated successfully!");
+                await updateUIForLoggedInUser(user); // Refresh sidebar
+                initializeMyProfilePage(); // Reset form to view mode
+            } catch (error) {
+                console.error("Error updating profile: ", error);
+                alert("Failed to update profile. Please try again.");
+            }
+        });
+    }
+
+    function initializeEmergencyRequestPage() {
+        const emergencyForm = document.querySelector('.page-emergency-request form');
+        if (!emergencyForm) return;
+
+        emergencyForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            if (!auth.currentUser) {
+                alert("You must be logged in to make an emergency request.");
+                return;
+            }
+
+            const bloodGroup = emergencyForm.querySelector('#bloodgroup').value;
+            const city = emergencyForm.querySelector('#city').value; // This contains hospital and city
+            const phone = emergencyForm.querySelector('#contact-phone').value;
+
+            if (!bloodGroup || !city || !phone) {
+                alert("Please fill out all fields.");
+                return;
+            }
+
+            const requestData = {
+                requesterId: auth.currentUser.uid,
+                patientName: 'Emergency', // Placeholder name
+                bloodType: bloodGroup,
+                hospitalName: city,
+                city: city.split(',')[1]?.trim() || 'Unknown',
+                isEmergency: true,
+                status: 'pending',
+                createdAt: new Date(),
+            };
+
+            await addDoc(collection(db, "requests"), requestData);
+            emergencyForm.closest('.form-container').innerHTML = `<div class="form-header"><h3>Alert Sent!</h3></div><div class="info-box"><p><i class="fas fa-check-circle"></i> The emergency alert has been broadcast to all compatible donors in the area.</p></div>`;
+        });
+    }
+
+    function initializeLeaderboard() {
+        renderLeaderboard();
+    }
 
     // --- Dark Mode Logic ---
     const applyTheme = (theme) => {
@@ -81,38 +1105,6 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     handleSidebar();
     window.addEventListener('resize', handleSidebar);
-
-    // 4. General scroll-reveal animation for elements
-    const animatedElements = document.querySelectorAll('.animate-on-scroll');
-    if (animatedElements.length > 0) {
-        const observer = new IntersectionObserver((entries) => {
-            entries.forEach(entry => {
-                if (entry.isIntersecting) {
-                    entry.target.classList.add('in-view');
-                }
-            });
-        }, { threshold: 0.1 });
-
-        animatedElements.forEach(el => observer.observe(el));
-    }
-
-    // --- Page-Specific Logic ---
-
-    // 5. Homepage: Animated counter for statistics
-    const statNumbers = document.querySelectorAll('.stat-number');
-    if (statNumbers.length > 0) {
-        const statObserver = new IntersectionObserver((entries, observer) => {
-            entries.forEach(entry => {
-                if (entry.isIntersecting && !entry.target.classList.contains('animated')) {
-                    animateCounter(entry.target);
-                    entry.target.classList.add('animated');
-                    observer.unobserve(entry.target); // Stop observing after animation
-                }
-            });
-        }, { threshold: 0.5 });
-
-        statNumbers.forEach(stat => statObserver.observe(stat));
-
         function animateCounter(element) {
             const target = parseInt(element.getAttribute('data-count'));
             const duration = 2000;
@@ -130,74 +1122,43 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
             }, frameRate);
         }
-    }
 
-    // 6. Donor Registration: Multi-step form
-    const registrationForm = document.getElementById('registrationForm');
-    if (registrationForm) {
-        const formSteps = registrationForm.querySelectorAll('.form-step');
-        const nextButtons = registrationForm.querySelectorAll('.btn-next');
-        const prevButtons = registrationForm.querySelectorAll('.btn-prev');
-        const progress = registrationForm.querySelector('.progress-bar .progress');
-        const progressSteps = registrationForm.querySelectorAll('.progress-bar .step');
-        let currentStep = 0; // Step index starts at 0
+    // --- Leaderboard Logic ---
+    async function renderLeaderboard() {
+        const leaderboardBody = document.getElementById('leaderboard-body');
+        if (!leaderboardBody) return;
 
-        const updateFormSteps = () => {
-            formSteps.forEach((step, index) => {
-                step.classList.toggle('active', index === currentStep);
-            });
+        // In a real application, you would fetch this data from your backend API
+        leaderboardBody.innerHTML = `<tr><td colspan="5" style="text-align:center;">Loading leaderboard...</td></tr>`;
 
-            updateProgressBar();
-        };
+        const donorsRef = collection(db, "donors");
+        const q = query(donorsRef, orderBy("totalDonations", "desc"), limit(10));
 
-        const updateProgressBar = () => {
-            progressSteps.forEach((step, index) => {
-                if (index < currentStep) {
-                    step.classList.add('completed');
-                    step.classList.remove('active');
-                } else if (index === currentStep) {
-                    step.classList.add('active');
-                    step.classList.remove('completed');
-                } else {
-                    step.classList.remove('active', 'completed');
-                }
-            });
+        const querySnapshot = await getDocs(q);
+        const donors = querySnapshot.docs.map(doc => doc.data());
 
-            const progressPercentage = (currentStep / (formSteps.length - 1)) * 100;
-            if (progress) progress.style.width = `${progressPercentage}%`;
-        };
+        if (donors.length === 0) {
+            leaderboardBody.innerHTML = `<tr><td colspan="5" style="text-align:center;">No donor data available yet.</td></tr>`;
+            return;
+        }
 
-        nextButtons.forEach(button => {
-            button.addEventListener('click', () => {
-                currentStep++;
-                updateFormSteps();
-            });
-        });
+        leaderboardBody.innerHTML = ''; // Clear existing data
 
-        prevButtons.forEach(button => {
-            button.addEventListener('click', () => {
-                currentStep--;
-                updateFormSteps();
-            });
-        });
+        donors.forEach((donor, index) => {
+            const rank = index + 1;
+            const prize = rank === 1 ? '$500' : (rank === 2 ? '$250' : (rank === 3 ? '$100' : '---'));
+            const rankIcon = rank === 1 ? '<i class="fas fa-trophy rank-gold"></i>' :
+                             rank === 2 ? '<i class="fas fa-trophy rank-silver"></i>' :
+                             rank === 3 ? '<i class="fas fa-trophy rank-bronze"></i>' : rank;
 
-        updateFormSteps();
-    }
-
-    // 7. FAQs Page: Accordion
-    const faqQuestions = document.querySelectorAll('.faq-question');
-    if (faqQuestions.length > 0) {
-        faqQuestions.forEach(question => {
-            question.addEventListener('click', () => {
-                const answer = question.nextElementSibling;
-                const isActive = question.classList.toggle('active');
-
-                if (isActive) {
-                    answer.style.maxHeight = answer.scrollHeight + 'px';
-                } else {
-                    answer.style.maxHeight = '0px';
-                }
-            });
+            const row = document.createElement('tr');
+            row.innerHTML = `
+                <td>${rankIcon}</td>
+                <td>${donor.fullName}</td>
+                <td>${donor.city}</td>
+                <td>${donor.totalDonations}</td>
+                <td>${prize}</td>
+            `;
+            leaderboardBody.appendChild(row);
         });
     }
-});

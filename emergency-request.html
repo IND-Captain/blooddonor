@@ -25,9 +25,9 @@
         </div>
         <ul class="sidebar-nav">
             <li><a href="index.html"><i class="fas fa-home" aria-hidden="true"></i><span class="link-text">Home</span></a></li>
-            <li><a href="donor-register.html"><i class="fas fa-user-plus" aria-hidden="true"></i><span class="link-text">Become Donor</span></a></li>
+            <li><a href="get-involved.html"><i class="fas fa-hands-helping" aria-hidden="true"></i><span class="link-text">Get Involved</span></a></li>
             <li><a href="search-donors.html"><i class="fas fa-search" aria-hidden="true"></i><span class="link-text">Find Donors</span></a></li>
-            <li><a href="blood-request.html"><i class="fas fa-tint" aria-hidden="true"></i><span class="link-text">Request Blood</span></a></li>
+            <li><a href="leaderboard.html"><i class="fas fa-trophy" aria-hidden="true"></i><span class="link-text">Leaderboard</span></a></li>
             <li><a href="faqs.html"><i class="fas fa-question-circle" aria-hidden="true"></i><span class="link-text">FAQs</span></a></li>
             <li><a href="admin-login.html"><i class="fas fa-user-shield" aria-hidden="true"></i><span class="link-text">Admin</span></a></li>
         </ul>
@@ -50,11 +50,11 @@
                 <a href="index.html" class="logo" aria-label="BloodBridge Homepage"><i class="fas fa-heart" aria-hidden="true"></i><span>BloodBridge</span></a>
                 <nav class="nav-links" role="navigation" aria-label="Main navigation">
                     <a href="index.html">Home</a>
-                    <a href="donor-register.html">Become Donor</a>
+                    <a href="get-involved.html">Get Involved</a>
                     <a href="search-donors.html">Find Donors</a>
-                    <a href="blood-request.html">Request Blood</a>
                     <a href="faqs.html">FAQs</a>
                     <a href="admin-login.html">Admin</a>
+                    <a href="leaderboard.html" class="icon-link" aria-label="Leaderboard"><i class="fas fa-trophy"></i></a>
                 </nav>
                 <a href="emergency-request.html" class="cta-button active" aria-label="Make emergency blood request"><i class="fas fa-exclamation-triangle" aria-hidden="true"></i> Emergency</a>
             </div>
@@ -64,9 +64,9 @@
     <div class="mobile-sidebar" id="mobileSidebar" role="navigation" aria-label="Mobile navigation">
         <nav class="nav-links">
             <a href="index.html">Home</a>
-            <a href="donor-register.html">Become Donor</a>
+            <a href="get-involved.html">Get Involved</a>
             <a href="search-donors.html">Find Donors</a>
-            <a href="blood-request.html">Request Blood</a>
+            <a href="leaderboard.html">Leaderboard</a>
             <a href="admin-login.html">Admin</a>
             <a href="faqs.html">FAQs</a>
             <a href="emergency-request.html" class="cta-button active">Emergency Request</a>
@@ -84,12 +84,27 @@
 
         <section class="form-section">
             <div class="container">
-                <div class="form-page-layout">
-                     <div class="form-image-container animate-on-scroll">
+                <div class="form-intro-layout">
+                    <div class="form-intro-content animate-on-scroll">
+                        <h2>Critical Situation: Immediate Action Required</h2>
+                        <p>This form is for life-threatening emergencies only. Your request will be broadcast with the highest priority to all available and compatible donors in the specified area.</p>
+                        <ul>
+                            <li>Use this only for genuine, urgent medical needs.</li>
+                            <li>Your alert bypasses standard request queues.</li>
+                            <li>Donors are notified instantly via SMS and push notifications.</li>
+                            <li>Misuse of this system may result in a permanent ban.</li>
+                        </ul>
+                    </div>
+                    <div class="form-image-container animate-on-scroll">
                         <img src="https://images.unsplash.com/photo-1581091014532-7478399435b4?auto=format&fit=crop&w=800&q=80" alt="Emergency medical team in action">
                     </div>
-                    <div class="form-container animate-on-scroll" style="border: 2px solid var(--primary-red);">
-                        <form action="#" method="POST">
+                </div>
+
+                <div class="form-container animate-on-scroll">
+                    <div class="form-header">
+                        <h3>Emergency Alert Form</h3>
+                    </div>
+                    <form action="#" method="POST">
                             <div class="form-group">
                                 <label for="bloodgroup" class="form-label">Required Blood Group</label>
                                 <select id="bloodgroup" name="bloodgroup" class="form-select" required>
@@ -112,7 +127,6 @@
                                 </button>
                             </div>
                         </form>
-                    </div>
                 </div>
             </div>
         </section>
@@ -135,9 +149,9 @@
                     <h4>Quick Links</h4>
                     <ul class="footer-links">
                         <li><a href="index.html">Home</a></li>
-                        <li><a href="donor-register.html">Become Donor</a></li>
+                        <li><a href="get-involved.html">Get Involved</a></li>
                         <li><a href="search-donors.html">Find Donors</a></li>
-                        <li><a href="blood-request.html">Request Blood</a></li>
+                        <li><a href="leaderboard.html">Leaderboard</a></li>
                         <li><a href="admin-login.html">Admin Portal</a></li>
                     </ul>
                 </div>
@@ -168,6 +182,6 @@
         </div>
     </footer>
 
-    <script src="script.js"></script>
+    <script type="module" src="script.js"></script>
 </body>
 </html>

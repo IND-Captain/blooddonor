@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Donor Leaderboard - BloodBridge</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<aside class="desktop-sidebar" aria-label="Primary navigation">
+<a href="index.html" class="logo" aria-label="BloodBridge Homepage">
+<i class="fas fa-heart" aria-hidden="true"></i>
+<span class="link-text">BloodBridge</span>
+</a>
+<div class="profile">
+<img src="https://i.pravatar.cc/150?u=a042581f4e29026704d" alt="User profile picture" class="profile-img">
+<div class="profile-info">
+<h4 class="profile-name">Alex Johnson</h4>
+<p class="profile-detail">O+ | New York</p>
+</div>
+</div>
+<ul class="sidebar-nav">
+<li><a href="index.html"><i class="fas fa-home" aria-hidden="true"></i><span class="link-text">Home</span></a></li>
+<li><a href="get-involved.html"><i class="fas fa-hands-helping" aria-hidden="true"></i><span class="link-text">Get Involved</span></a></li>
+<li><a href="search-donors.html"><i class="fas fa-search" aria-hidden="true"></i><span class="link-text">Find Donors</span></a></li>
+<li><a href="leaderboard.html" class="active"><i class="fas fa-trophy" aria-hidden="true"></i><span class="link-text">Leaderboard</span></a></li>
+<li><a href="faqs.html"><i class="fas fa-question-circle" aria-hidden="true"></i><span class="link-text">FAQs</span></a></li>
+<li><a href="admin-login.html"><i class="fas fa-user-shield" aria-hidden="true"></i><span class="link-text">Admin</span></a></li>
+</ul>
+<div class="sidebar-footer">
+<div class="dark-mode-toggle">
+<i class="fas fa-sun"></i>
+<label class="switch">
+<input type="checkbox" id="darkModeToggle">
+<span class="slider round"></span>
+</label>
+<i class="fas fa-moon"></i>
+</div>
+</div>
+</aside>
+<header id="header" role="banner">
+<div class="container">
+<div class="header-content">
+<div class="menu-icon" id="menuToggle" aria-label="Toggle navigation menu" role="button" tabindex="0"><span></span><span></span><span></span></div>
+<a href="index.html" class="logo" aria-label="BloodBridge Homepage"><i class="fas fa-heart" aria-hidden="true"></i><span>BloodBridge</span></a>
+<nav class="nav-links" role="navigation" aria-label="Main navigation">
+<a href="index.html">Home</a>
+<a href="get-involved.html">Get Involved</a>
+<a href="search-donors.html">Find Donors</a>
+<a href="faqs.html">FAQs</a>
+<a href="admin-login.html">Admin</a>
+<a href="leaderboard.html" class="icon-link active" aria-label="Leaderboard"><i class="fas fa-trophy"></i></a>
+</nav>
+<a href="emergency-request.html" class="cta-button" aria-label="Make emergency blood request"><i class="fas fa-exclamation-triangle" aria-hidden="true"></i> Emergency</a>
+</div>
+</div>
+</header>
+<div class="mobile-sidebar" id="mobileSidebar" role="navigation" aria-label="Mobile navigation">
+<nav class="nav-links">
+<a href="index.html">Home</a>
+<a href="get-involved.html">Get Involved</a>
+<a href="search-donors.html">Find Donors</a>
+<a href="leaderboard.html" class="active">Leaderboard</a>
+<a href="admin-login.html">Admin</a>
+<a href="faqs.html">FAQs</a>
+<a href="emergency-request.html" class="cta-button">Emergency Request</a>
+</nav>
+</div>
+<div class="mobile-overlay" id="mobileOverlay"></div>
+<!-- This content will be dynamically loaded into the main page -->
+<main id="main-content">
+<section class="page-header">
+<div class="container">
+<h1 class="page-title"><i class="fas fa-trophy"></i> Donor Leaderboard</h1>
+<p class="page-subtitle">Celebrating our most dedicated life-savers. Thank you for your invaluable contributions!</p>
+</div>
+</section>
+<section class="leaderboard-section">
+<div class="container">
+<div class="info-box">
+<p><i class="fas fa-gift"></i> Top 3 donors at the end of each month win a cash prize as a token of our appreciation!</p>
+</div>
+<table class="leaderboard-table animate-on-scroll">
+<thead>
+<tr>
+<th>Rank</th>
+<th>Donor Name</th>
+<th>City</th>
+<th>Donations</th>
+<th>Prize</th>
+</tr>
+</thead>
+<tbody id="leaderboard-body">
+<!-- Rows will be dynamically inserted by script.js -->
+</tbody>
+</table>
+</div>
+</section>
+</main>
+<script type="module" src="script.js"></script>
+</body>
+</html>

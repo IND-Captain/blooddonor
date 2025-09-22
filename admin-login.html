@@ -25,9 +25,9 @@
         </div>
         <ul class="sidebar-nav">
             <li><a href="index.html"><i class="fas fa-home" aria-hidden="true"></i><span class="link-text">Home</span></a></li>
-            <li><a href="donor-register.html"><i class="fas fa-user-plus" aria-hidden="true"></i><span class="link-text">Become Donor</span></a></li>
+            <li><a href="get-involved.html"><i class="fas fa-hands-helping" aria-hidden="true"></i><span class="link-text">Get Involved</span></a></li>
             <li><a href="search-donors.html"><i class="fas fa-search" aria-hidden="true"></i><span class="link-text">Find Donors</span></a></li>
-            <li><a href="blood-request.html"><i class="fas fa-tint" aria-hidden="true"></i><span class="link-text">Request Blood</span></a></li>
+            <li><a href="leaderboard.html"><i class="fas fa-trophy" aria-hidden="true"></i><span class="link-text">Leaderboard</span></a></li>
             <li><a href="faqs.html"><i class="fas fa-question-circle" aria-hidden="true"></i><span class="link-text">FAQs</span></a></li>
             <li><a href="admin-login.html" class="active"><i class="fas fa-user-shield" aria-hidden="true"></i><span class="link-text">Admin</span></a></li>
         </ul>
@@ -50,11 +50,11 @@
                 <a href="index.html" class="logo" aria-label="BloodBridge Homepage"><i class="fas fa-heart" aria-hidden="true"></i><span>BloodBridge</span></a>
                 <nav class="nav-links" role="navigation" aria-label="Main navigation">
                     <a href="index.html">Home</a>
-                    <a href="donor-register.html">Become Donor</a>
+                    <a href="get-involved.html">Get Involved</a>
                     <a href="search-donors.html">Find Donors</a>
-                    <a href="blood-request.html">Request Blood</a>
                     <a href="faqs.html">FAQs</a>
                     <a href="admin-login.html" class="active">Admin</a>
+                    <a href="leaderboard.html" class="icon-link" aria-label="Leaderboard"><i class="fas fa-trophy"></i></a>
                 </nav>
                 <a href="emergency-request.html" class="cta-button" aria-label="Make emergency blood request"><i class="fas fa-exclamation-triangle" aria-hidden="true"></i> Emergency</a>
             </div>
@@ -64,9 +64,9 @@
     <div class="mobile-sidebar" id="mobileSidebar" role="navigation" aria-label="Mobile navigation">
         <nav class="nav-links">
             <a href="index.html">Home</a>
-            <a href="donor-register.html">Become Donor</a>
+            <a href="get-involved.html">Get Involved</a>
             <a href="search-donors.html">Find Donors</a>
-            <a href="blood-request.html">Request Blood</a>
+            <a href="leaderboard.html">Leaderboard</a>
             <a href="admin-login.html" class="active">Admin</a>
             <a href="faqs.html">FAQs</a>
             <a href="emergency-request.html" class="cta-button">Emergency Request</a>
@@ -85,14 +85,14 @@
                         <h1 class="section-title">Admin Portal</h1>
                         <p>Please sign in to continue.</p>
                     </div>
-                    <form action="#" method="POST">
+                    <form id="admin-login-form">
                         <div class="form-group">
                             <label for="email" class="form-label">Email Address</label>
-                            <input type="email" id="email" name="email" class="form-input" placeholder="admin@bloodbridge.com" required>
+                            <input type="email" id="admin-email" name="email" class="form-input" placeholder="admin@bloodbridge.com" required>
                         </div>
                         <div class="form-group">
                             <label for="password" class="form-label">Password</label>
-                            <input type="password" id="password" name="password" class="form-input" placeholder="••••••••" required>
+                            <input type="password" id="admin-password" name="password" class="form-input" placeholder="••••••••" required>
                         </div>
                         <div class="form-options">
                             <div class="checkbox-group">
@@ -116,6 +116,6 @@
         </section>
     </main>
 
-    <script src="script.js"></script>
+    <script type="module" src="script.js"></script>
 </body>
 </html>

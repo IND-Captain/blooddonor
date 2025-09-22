@@ -1,0 +1,73 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Users Collection:
+    // - A user can read their own user document.
+    // - A user can create their own user document.
+    // - No one can update or delete user roles except through a backend process.
+    match /users/{userId} {
+      allow read, create: if request.auth.uid == userId;
+      allow update, delete: if false; // Prevent client-side role changes.
+    }
+
+    // Donors Collection:
+    // - Any authenticated user can read donor profiles (for searching).
+    // - A user can create their own donor profile.
+    // - A user can only update their own donor profile.
+    // - Admins can update any donor profile (e.g., to verify them).
+    match /donors/{userId} {
+      allow read: if request.auth != null;
+      allow create: if request.auth.uid == userId
+                    && request.resource.data.uid == request.auth.uid; // Ensure UID consistency
+
+      allow update: if request.auth.uid == userId || request.auth.token.admin == true;
+
+      // Data Validation for Donor documents
+      function isDonorDataValid() {
+        let data = request.resource.data;
+        return data.fullName is string && data.fullName.size() > 0
+            && data.bloodType is string
+            && data.city is string
+            && data.phone is string
+            && data.availability is string
+            && data.isVerified is bool
+            && data.totalDonations is number
+            && (data.profilePictureUrl is string || data.profilePictureUrl == null)
+            && (data.lastDonationDate is timestamp || data.lastDonationDate == null);
+      }
+    }
+
+    // Requests Collection:
+    // - Any authenticated user can read requests (to see what's needed).
+    // - Any authenticated user can create a new request.
+    // - Only the original requester or an admin can update/delete a request.
+    match /requests/{requestId} {
+      allow read: if request.auth != null;
+      allow create: if request.auth != null
+                    && request.resource.data.requesterId == request.auth.uid // Ensure ownership
+                    && isRequestDataValid();
+
+      allow update, delete: if resource.data.requesterId == request.auth.uid
+                           || request.auth.token.admin == true;
+
+      // Data Validation for Request documents
+      function isRequestDataValid() {
+        let data = request.resource.data;
+        return data.patientName is string && data.patientName.size() > 0
+            && data.bloodType is string
+            && data.unitsRequired is number && data.unitsRequired > 0
+            && data.hospitalName is string
+            && data.city is string
+            && data.isEmergency is bool
+            && data.status == 'pending'; // New requests must be pending
+      }
+    }
+
+    // ActivityLogs Collection:
+    // - Only accessible by backend functions (admins can't even write directly).
+    match /activityLogs/{logId} {
+        allow read, write: if false;
+    }
+  }
+}

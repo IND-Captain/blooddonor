@@ -25,11 +25,11 @@
         </div>
         <ul class="sidebar-nav">
             <li><a href="index.html" class="active"><i class="fas fa-home" aria-hidden="true"></i><span class="link-text">Home</span></a></li>
-            <li><a href="donor-register.html"><i class="fas fa-user-plus" aria-hidden="true"></i><span class="link-text">Become Donor</span></a></li>
+            <li id="my-profile-nav-link" class="hidden"><a href="my-profile.html"><i class="fas fa-user-edit" aria-hidden="true"></i><span class="link-text">My Profile</span></a></li>
+            <li><a href="get-involved.html"><i class="fas fa-hands-helping" aria-hidden="true"></i><span class="link-text">Get Involved</span></a></li>
             <li><a href="search-donors.html"><i class="fas fa-search" aria-hidden="true"></i><span class="link-text">Find Donors</span></a></li>
-            <li><a href="blood-request.html"><i class="fas fa-tint" aria-hidden="true"></i><span class="link-text">Request Blood</span></a></li>
+            <li><a href="leaderboard.html"><i class="fas fa-trophy" aria-hidden="true"></i><span class="link-text">Leaderboard</span></a></li>
             <li><a href="faqs.html"><i class="fas fa-question-circle" aria-hidden="true"></i><span class="link-text">FAQs</span></a></li>
-            <li><a href="admin-login.html"><i class="fas fa-user-shield" aria-hidden="true"></i><span class="link-text">Admin</span></a></li>
         </ul>
         <div class="sidebar-footer">
             <div class="dark-mode-toggle">
@@ -53,11 +53,10 @@
                 </a>
                 <nav class="nav-links" role="navigation" aria-label="Main navigation">
                     <a href="index.html" class="active">Home</a>
-                    <a href="donor-register.html">Become Donor</a>
+                    <a href="get-involved.html">Get Involved</a>
                     <a href="search-donors.html">Find Donors</a>
-                    <a href="blood-request.html">Request Blood</a>
                     <a href="faqs.html">FAQs</a>
-                    <a href="admin-login.html">Admin</a>
+                    <a href="leaderboard.html" class="icon-link" aria-label="Leaderboard"><i class="fas fa-trophy"></i></a>
                 </nav>
                 <a href="emergency-request.html" class="cta-button" aria-label="Make emergency blood request">
                     <i class="fas fa-exclamation-triangle" aria-hidden="true"></i>
@@ -70,10 +69,9 @@
     <div class="mobile-sidebar" id="mobileSidebar" role="navigation" aria-label="Mobile navigation">
         <nav class="nav-links">
             <a href="index.html" class="active">Home</a>
-            <a href="donor-register.html">Become Donor</a>
+            <a href="get-involved.html">Get Involved</a>
             <a href="search-donors.html">Find Donors</a>
-            <a href="blood-request.html">Request Blood</a>
-            <a href="admin-login.html">Admin</a>
+            <a href="leaderboard.html">Leaderboard</a>
             <a href="faqs.html">FAQs</a>
             <a href="emergency-request.html" class="cta-button">Emergency Request</a>
         </nav>
@@ -90,7 +88,7 @@
                         <h1>Save Lives Through Blood Donation</h1>
                         <p>Join our community of life-savers. Every donation can save up to three lives. Register as a donor today and make a difference in someone's life.</p>
                         <div class="hero-buttons">
-                            <a href="donor-register.html" class="btn-primary">
+                            <a href="get-involved.html" class="btn-primary">
                                 <i class="fas fa-user-plus" aria-hidden="true"></i>
                                 Register as Donor
                             </a>
@@ -180,6 +178,21 @@
                         <h3 class="feature-title">Track Impact</h3>
                         <p class="feature-description">Monitor your donation history and see the real impact you're making in saving lives.</p>
                     </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Recent Activity Section -->
+        <section class="recent-activity-section" aria-labelledby="activity-title">
+            <div class="container">
+                <div class="section-header animate-on-scroll">
+                    <h2 id="activity-title" class="section-title">Live Activity Feed</h2>
+                    <p class="section-subtitle">See the real-time impact our community is making right now.</p>
+                </div>
+                <div class="activity-feed-container animate-on-scroll">
+                    <ul id="activity-feed" class="activity-feed">
+                        <!-- Activity items will be dynamically inserted here by script.js -->
+                    </ul>
                 </div>
             </div>
         </section>
@@ -342,7 +355,7 @@
                 <div class="cta-content animate-on-scroll">
                     <h2 id="cta-title">Ready to Make a Difference?</h2>
                     <p>Your journey to becoming a hero starts with a single step. Register today and join a community dedicated to saving lives.</p>
-                    <a href="donor-register.html" class="btn-primary">
+                    <a href="get-involved.html" class="btn-primary">
                         <i class="fas fa-user-plus" aria-hidden="true"></i>
                         Become a Donor Now
                     </a>
@@ -381,10 +394,9 @@
                     <h4>Quick Links</h4>
                     <ul class="footer-links">
                         <li><a href="index.html">Home</a></li>
-                        <li><a href="donor-register.html">Become Donor</a></li>
+                        <li><a href="get-involved.html">Get Involved</a></li>
                         <li><a href="search-donors.html">Find Donors</a></li>
-                        <li><a href="blood-request.html">Request Blood</a></li>
-                        <li><a href="admin-login.html">Admin Portal</a></li>
+                        <li><a href="leaderboard.html">Leaderboard</a></li>
                     </ul>
                 </div>
                 <div class="footer-section">
@@ -413,6 +425,6 @@
             </div>
         </div>
     </footer>
-    <script src="script.js"></script>
+    <script type="module" src="script.js"></script>
 </body>
 </html>
