@@ -200,47 +200,57 @@ import { ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/fireba
     }
 
     function initializeGetInvolvedPage() {
+        // When this page loads (either directly or via SPA nav),
+        // we need to immediately show the correct set of forms based on auth state.
+        // The global onAuthStateChanged listener handles this for login/logout events,
+        // but this handles the initial page view upon navigation.
+        if (auth.currentUser) {
+            updateUIForLoggedInUser(auth.currentUser);
+        } else {
+            updateUIForLoggedOutUser();
+        }
+
         // 1. Handle multi-step donor registration form
         initializeDonorRegisterForm();
     
-        // 2. Handle standard blood request form
+        // 2. Handle auth forms (signup/login)
+        const signupForm = document.getElementById('signup-form');
+        signupForm?.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const email = signupForm.querySelector('#signup-email').value;
+            const password = signupForm.querySelector('#signup-password').value;
+            try {
+                const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+                // This will trigger onAuthStateChanged, which handles the UI update
+                console.log('Signed up:', userCredential.user);
+                // Create a user document in Firestore
+                await setDoc(doc(db, "users", userCredential.user.uid), {
+                    email: userCredential.user.email,
+                    role: 'donor', // default role
+                    createdAt: new Date()
+                });
+            } catch (error) {
+                alert(error.message);
+            }
+        });
+
+        const loginForm = document.getElementById('login-form');
+        loginForm?.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const email = loginForm.querySelector('#login-email').value;
+            const password = loginForm.querySelector('#login-password').value;
+            try {
+                const userCredential = await signInWithEmailAndPassword(auth, email, password);
+                // This will trigger onAuthStateChanged
+                console.log('Logged in:', userCredential.user);
+            } catch (error) {
+                alert(error.message);
+            }
+        });
+
+        // 3. Handle standard blood request form
         const requestForm = document.querySelector('#bloodRequestForm');
         if (requestForm) {
-            // Auth form handlers
-            const signupForm = document.getElementById('signup-form');
-            signupForm?.addEventListener('submit', async (e) => {
-                e.preventDefault();
-                const email = signupForm.querySelector('#signup-email').value;
-                const password = signupForm.querySelector('#signup-password').value;
-                try {
-                    const userCredential = await createUserWithEmailAndPassword(auth, email, password);
-                    // This will trigger onAuthStateChanged
-                    console.log('Signed up:', userCredential.user);
-                    // You might want to create a user document in Firestore here
-                    await setDoc(doc(db, "users", userCredential.user.uid), {
-                        email: userCredential.user.email,
-                        role: 'donor', // default role
-                        createdAt: new Date()
-                    });
-                } catch (error) {
-                    alert(error.message);
-                }
-            });
-
-            const loginForm = document.getElementById('login-form');
-            loginForm?.addEventListener('submit', async (e) => {
-                e.preventDefault();
-                const email = loginForm.querySelector('#login-email').value;
-                const password = loginForm.querySelector('#login-password').value;
-                try {
-                    const userCredential = await signInWithEmailAndPassword(auth, email, password);
-                    // This will trigger onAuthStateChanged
-                    console.log('Logged in:', userCredential.user);
-                } catch (error) {
-                    alert(error.message);
-                }
-            });
-
             requestForm.addEventListener('submit', async (e) => {
                 e.preventDefault();
 
@@ -256,37 +266,33 @@ import { ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/fireba
 
                 const formData = new FormData(requestForm);
                 const requestData = {
-                    requesterId: auth.currentUser.uid, // Use the actual user's ID
+                    requesterId: auth.currentUser.uid,
                     patientName: formData.get('patient-name'),
                     bloodType: formData.get('bloodgroup'),
                     unitsRequired: Number(formData.get('units')),
                     hospitalName: formData.get('hospital'),
-                    city: formData.get('hospital').split(',')[1]?.trim() || 'Unknown', // Simple city extraction
+                    city: formData.get('hospital').split(',')[1]?.trim() || 'Unknown',
                     isEmergency: false,
                     status: 'pending',
                     createdAt: new Date(),
-                    // In a real app, you'd get GeoPoint from an address lookup API
-                    // location: new firebase.firestore.GeoPoint(lat, lng)
                 };
 
-                // WRITE TO FIREBASE
                 try {
                     const docRef = await addDoc(collection(db, "requests"), requestData);
                     console.log("Request submitted with ID: ", docRef.id);
+                    const formContainer = requestForm.closest('.form-container');
+                    formContainer.innerHTML = `
+                        <div class="form-header">
+                            <h3>Thank You!</h3>
+                        </div>
+                        <div class="info-box" style="text-align: center;">
+                            <p><i class="fas fa-check-circle"></i> Your blood request has been submitted. Our system will now find and notify compatible donors.</p>
+                        </div>
+                    `;
                 } catch (error) {
                     console.error("Error adding request: ", error);
                     alert("There was an error submitting your request. Please try again.");
                 }
-                const formContainer = requestForm.closest('.form-container');
-                formContainer.innerHTML = `
-                    <div class="form-header">
-                        <h3>Thank You!</h3>
-                    </div>
-                    <div class="info-box" style="text-align: center;">
-                        <p><i class="fas fa-check-circle"></i> Your blood request has been submitted. Our system will now find and notify compatible donors.</p>
-                    </div>
-                `;
-                // This would trigger the onRequestCreate Cloud Function
             });
         }
     }
@@ -561,9 +567,18 @@ import { ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/fireba
                 `;
             } else {
                 // User is logged in but hasn't created a donor profile yet
-                profileContainer.innerHTML = `<div class="profile-info" style="opacity:1; text-align:center;"><p>Welcome, ${user.email}!</p><p style="font-size:0.8rem;">Complete your donor profile.</p></div>`;
+                profileContainer.innerHTML = `
+                    <img src="https://i.pravatar.cc/150?u=${user.uid}" alt="User profile picture" class="profile-img">
+                    <div class="profile-info">
+                        <h4 class="profile-name">Welcome!</h4>
+                        <p class="profile-detail">${user.email}</p>
+                    </div>
+                `;
             }
         }
+
+        // Re-initialize animations for any newly visible elements
+        initializeScrollAnimations();
     }
 
     function updateUIForLoggedOutUser() {
@@ -589,6 +604,9 @@ import { ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/fireba
                 </div>
             `;
         }
+
+        // Re-initialize animations for any newly visible elements
+        initializeScrollAnimations();
     }
 
     function validateForm(form) {

@@ -6,12 +6,13 @@ import { getStorage } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-s
 
 // TODO: Add your own Firebase configuration from your project settings
 const firebaseConfig = {
-  apiKey: "YOUR_API_KEY",
-  authDomain: "YOUR_AUTH_DOMAIN",
-  projectId: "YOUR_PROJECT_ID",
-  storageBucket: "YOUR_STORAGE_BUCKET",
-  messagingSenderId: "YOUR_MESSAGING_SENDER_ID",
-  appId: "YOUR_APP_ID"
+  apiKey: "AIzaSyCoYWblGtpZPpOyCchhgfWzaSOxX8izw04",
+  authDomain: "oasis-4761b.firebaseapp.com",
+  projectId: "oasis-4761b",
+  storageBucket: "oasis-4761b.firebasestorage.app",
+  messagingSenderId: "1016563423327",
+  appId: "1:1016563423327:web:9fe8433f974104a4c623ea",
+  measurementId: "G-Q05E389JB6"
 };
 
 // Initialize Firebase

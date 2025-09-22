@@ -1,6 +1,6 @@
 {
-  "name": "bloodbridge-functions",
-  "description": "Cloud Functions for BloodBridge",
+  "name": "oasis-functions",
+  "description": "Cloud Functions for Oasis",
   "scripts": {
     "serve": "firebase emulators:start --only functions",
     "shell": "firebase functions:shell",

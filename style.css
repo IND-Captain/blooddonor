@@ -1232,7 +1232,8 @@ body.dark-mode .donor-card-name,
 body.dark-mode .faq-question,
 body.dark-mode .page-title,
 body.dark-mode .author-info h5,
-body.dark-mode .page-header {
+body.dark-mode .page-header,
+body.dark-mode .form-header h3 {
     color: var(--dm-text);
 }
 body.dark-mode .section-subtitle,
@@ -1666,4 +1667,43 @@ body.dark-mode .leaderboard-table tbody tr:hover { background-color: #2c3a4e; }
     color: var(--gray-600);
     margin-left: auto;
     white-space: nowrap;
+}
+
+/* --- Dark Mode Fixes & Additions --- */
+body.dark-mode .admin-tabs {
+    border-bottom-color: var(--dm-border);
+}
+body.dark-mode .admin-tab {
+    color: var(--dm-text-secondary);
+}
+body.dark-mode .admin-table thead {
+    background: var(--dm-surface);
+}
+body.dark-mode .admin-table th {
+    color: var(--dm-text);
+}
+body.dark-mode .admin-table th,
+body.dark-mode .admin-table td {
+    border-bottom-color: var(--dm-border);
+}
+body.dark-mode .modal-content {
+    background: var(--dm-surface);
+    color: var(--dm-text);
+}
+body.dark-mode .faq-item,
+body.dark-mode .activity-item {
+    border-bottom-color: var(--dm-border);
+}
+body.dark-mode .recent-activity-section {
+    background: var(--dm-bg);
+}
+body.dark-mode .activity-feed-container {
+    background: var(--dm-surface);
+    border-color: var(--dm-border);
+}
+body.dark-mode .activity-text {
+    color: var(--dm-text);
+}
+body.dark-mode .activity-time {
+    color: var(--dm-text-secondary);
 }
