@@ -1,0 +1,66 @@
+{% extends "layout.html" %}
+
+{% block title %}My Profile - Oasis{% endblock %}
+
+{% block body_class %}page-my-profile{% endblock %}
+
+{% block content %}
+        <section class="page-header">
+            <div class="container">
+                <h1 class="page-title"><i class="fas fa-user-edit"></i> My Profile</h1>
+                <p class="page-subtitle">Keep your information up-to-date to help us connect you with those in need.</p>
+            </div>
+        </section>
+
+        <section class="form-section">
+            <div class="container">
+                <div id="profile-form-container" class="form-container">
+                    {% if user %}
+                    <form id="profile-edit-form" method="POST" action="{{ url_for('my_profile_page') }}" enctype="multipart/form-data">
+                        <div class="form-header"><h3>Edit Your Profile</h3></div>
+                        <div class="form-group profile-picture-group">
+                            <label for="profile-picture" class="form-label">Profile Picture</label>
+                            <input type="file" id="profile-picture" name="profile-picture" class="form-input" accept="image/*" disabled>
+                            <img id="picture-preview" src="{{ user.profile_picture_url or url_for('static', filename='images/default-avatar.png') }}" alt="Profile picture preview" class="profile-img-preview">
+                        </div>
+                        <div class="form-group">
+                            <label for="profile-fullname" class="form-label">Full Name</label>
+                            <input type="text" id="profile-fullname" name="fullName" class="form-input" value="{{ user.name or user.username or '' }}" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="profile-email" class="form-label">Email</label>
+                            <input type="email" id="profile-email" name="email" class="form-input" value="{{ user.email or '' }}" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="profile-phone" class="form-label">Phone</label>
+                            <input type="tel" id="profile-phone" name="phone" class="form-input" value="{{ user.contact or '' }}">
+                        </div>
+                        <div class="form-group">
+                            <label for="profile-city" class="form-label">City</label>
+                            <input type="text" id="profile-city" name="city" class="form-input" value="{{ user.city or '' }}" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="profile-dob" class="form-label">Date of Birth</label>
+                            <input type="date" id="profile-dob" name="dob" class="form-input" value="{{ user.dob.strftime('%Y-%m-%d') if user.dob else '' }}" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="profile-bloodgroup" class="form-label">Blood Group</label>
+                            <select id="profile-bloodgroup" name="bloodgroup" class="form-select" required>
+                                {% set blood_groups = ['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'] %}
+                                {% for bg in blood_groups %}
+                                <option value="{{ bg }}" {{ 'selected' if user.blood_group == bg else '' }}>{{ bg }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div id="profile-buttons" class="form-buttons">
+                            <button type="button" id="edit-profile-btn" class="btn-primary">Edit Profile</button>
+                            <a href="{{ url_for('logout') }}" class="btn-form" style="background-color: var(--gray-600); color: white;">Logout</a>
+                        </div>
+                    </form>
+                    {% else %}
+                    <p>Could not load your profile. Please try again later.</p>
+                    {% endif %}
+                </div>
+            </div>
+        </section>
+{% endblock %}

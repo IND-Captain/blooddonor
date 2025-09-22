@@ -1,0 +1,99 @@
+{% extends "layout.html" %}
+
+{% block title %}Admin Login - Oasis{% endblock %}
+
+{% block body_class %}page-admin-login{% endblock %}
+
+{% block content %}
+        <section class="login-section">
+            <div class="login-container">
+                <div class="form-container">
+                    <div class="login-header">
+                        <a href="{{ url_for('home') }}" class="logo" aria-label="Oasis Homepage">
+                            <i class="fas fa-user-shield" aria-hidden="true"></i>
+                        </a>
+                        <h1 class="section-title">Admin Portal</h1>
+                        <p>Please sign in to continue.</p>
+                    </div>
+                    <form id="admin-login-form" method="POST" action="{{ url_for('admin_login_page') }}">
+                        <div class="form-group">
+                            <label for="email" class="form-label">Email Address</label>
+                            <input type="email" id="admin-email" name="email" class="form-input" placeholder="admin@oasis.com" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="password" class="form-label">Password</label>
+                            <input type="password" id="admin-password" name="password" class="form-input" placeholder="••••••••" required>
+                        </div>
+                        <div class="form-options">
+                            <div class="checkbox-group">
+                                <input type="checkbox" id="remember-me" name="remember-me">
+                                <label for="remember-me">Remember me</label>
+                            </div>
+                            <a href="#">Forgot password?</a>
+                        </div>
+                        <div class="form-group">
+                            <button type="submit" class="btn-submit">
+                                <i class="fas fa-sign-in-alt" aria-hidden="true"></i>
+                                Sign In
+                            </button>
+                        </div>
+                    </form>
+                    <div style="text-align: center; margin-top: 20px; color: var(--gray-600); font-style: italic;">
+                        <p>"Empowering administrators to save more lives."</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+{% endblock %}
+
+
+
+    <header id="header" role="banner">
+        <div class="container">
+            <div class="header-content">
+                <div class="menu-icon" id="menuToggle" aria-label="Toggle navigation menu" role="button" tabindex="0"><span></span><span></span><span></span></div>
+                <a href="{{ url_for('home') }}" class="logo" aria-label="Oasis Homepage"><i class="fas fa-heart" aria-hidden="true"></i><span>Oasis</span></a>
+                <nav class="nav-links" role="navigation" aria-label="Main navigation">
+                    <a href="{{ url_for('home') }}" class="{{ 'active' if request.endpoint == 'home' else '' }}">Home</a>
+                    <a href="{{ url_for('get_involved_page') }}" class="{{ 'active' if request.endpoint == 'get_involved_page' else '' }}">Get Involved</a>
+                    <a href="{{ url_for('search_donors_page') }}" class="{{ 'active' if request.endpoint == 'search_donors_page' else '' }}">Find Donors</a>
+                    <a href="{{ url_for('faqs_page') }}" class="{{ 'active' if request.endpoint == 'faqs_page' else '' }}">FAQs</a>
+                    <a href="{{ url_for('admin_login_page') }}" class="{{ 'active' if 'admin' in request.endpoint else '' }}">Admin</a>
+                    <a href="{{ url_for('leaderboard_page') }}" class="icon-link {{ 'active' if request.endpoint == 'leaderboard_page' else '' }}" aria-label="Leaderboard"><i class="fas fa-trophy"></i></a>
+                </nav>
+                <a href="{{ url_for('emergency_request_page') }}" class="cta-button" aria-label="Make emergency blood request"><i class="fas fa-exclamation-triangle" aria-hidden="true"></i> Emergency</a>
+            </div>
+        </div>
+    </header>
+
+    <div class="mobile-sidebar" id="mobileSidebar" role="navigation" aria-label="Mobile navigation">
+        <nav class="nav-links">
+            <a href="{{ url_for('home') }}">Home</a>
+            {% if session.user_id %}
+            <a href="{{ url_for('my_profile_page') }}">My Profile</a>
+            {% endif %}
+            <a href="{{ url_for('get_involved_page') }}">Get Involved</a>
+            <a href="{{ url_for('search_donors_page') }}">Find Donors</a>
+            <a href="{{ url_for('leaderboard_page') }}">Leaderboard</a>
+            <a href="{{ url_for('admin_login_page') }}">Admin</a>
+            <a href="{{ url_for('faqs_page') }}">FAQs</a>
+            <a href="{{ url_for('emergency_request_page') }}" class="cta-button">Emergency Request</a>
+            {% if session.user_id %}
+            <a href="{{ url_for('logout') }}" class="cta-button" style="background: var(--gray-600);">Logout</a>
+            {% endif %}
+        </nav>
+    </div>
+    <div class="mobile-overlay" id="mobileOverlay"></div>
+
+    <main id="main-content">
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                <div class="container" style="padding-top: 20px; padding-bottom: 0;">
+                {% for category, message in messages %}
+                    <div class="info-box flash-{{ category }}">{{ message }}</div>
+                {% endfor %}
+                </div>
+            {% endif %}
+        {% endwith %}
+        {% block content %}{% endblock %}
+    </main>

@@ -1,0 +1,63 @@
+{% extends "layout.html" %}
+
+{% block title %}Emergency Blood Request - Oasis{% endblock %}
+
+{% block body_class %}page-emergency-request{% endblock %}
+
+{% block content %}
+        <section class="page-header">
+            <div class="container">
+                <h1 class="page-title"><i class="fas fa-exclamation-triangle"></i> Emergency Request</h1>
+                <p class="page-subtitle">This form is for critical, life-threatening situations only. Requests will be sent out with highest priority.</p>
+            </div>
+        </section>
+
+        <section class="form-section">
+            <div class="container">
+                <div class="form-intro-layout">
+                    <div class="form-intro-content animate-on-scroll">
+                        <h2>Critical Situation: Immediate Action Required</h2>
+                        <p>This form is for life-threatening emergencies only. Your request will be broadcast with the highest priority to all available and compatible donors in the specified area.</p>
+                        <ul>
+                            <li>Use this only for genuine, urgent medical needs.</li>
+                            <li>Your alert bypasses standard request queues.</li>
+                            <li>Donors are notified instantly.</li>
+                            <li>Misuse of this system may result in a permanent ban.</li>
+                        </ul>
+                    </div>
+                    <div class="form-image-container animate-on-scroll">
+                        <img src="https://images.unsplash.com/photo-1581091014532-7478399435b4?auto=format&fit=crop&w=800&q=80" alt="Emergency medical team in action">
+                    </div>
+                </div>
+
+                <div class="form-container animate-on-scroll">
+                    <div class="form-header">
+                        <h3>Emergency Alert Form</h3>
+                    </div>
+                    <form action="{{ url_for('emergency_request_page') }}" method="POST">
+                            <div class="form-group">
+                                <label for="bloodgroup" class="form-label">Required Blood Group</label>
+                                <select id="bloodgroup" name="bloodgroup" class="form-select" required>
+                                    <option value="" disabled selected>Select blood group</option>
+                                    <option value="A+">A+</option><option value="A-">A-</option><option value="B+">B+</option><option value="B-">B-</option><option value="AB+">AB+</option><option value="AB-">AB-</option><option value="O+">O+</option><option value="O-">O-</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label for="city" class="form-label">Hospital / City</label>
+                                <input type="text" id="city" name="city" class="form-input" placeholder="e.g., City General Hospital, New York" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="contact-phone" class="form-label">Direct Contact Phone</label>
+                                <input type="tel" id="contact-phone" name="contact-phone" class="form-input" placeholder="A phone number for immediate contact" required>
+                            </div>
+                            <div class="form-group">
+                                <button type="submit" class="btn-emergency">
+                                    <i class="fas fa-bolt" aria-hidden="true"></i>
+                                    Send Emergency Alert
+                                </button>
+                            </div>
+                        </form>
+                </div>
+            </div>
+        </section>
+{% endblock %}

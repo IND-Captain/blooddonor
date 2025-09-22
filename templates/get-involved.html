@@ -1,0 +1,50 @@
+{% extends "layout.html" %}
+
+{% block title %}Get Involved - Oasis{% endblock %}
+
+{% block body_class %}page-get-involved{% endblock %}
+
+{% block content %}
+        <section class="page-header">
+            <div class="container">
+                <h1 class="page-title"><i class="fas fa-hands-helping"></i> Get Involved</h1>
+                <p class="page-subtitle">Whether you want to donate blood or need to request it, you're in the right place.</p>
+            </div>
+        </section>
+
+        <section class="form-section">
+            <div class="container" id="get-involved-content">
+                <div id="auth-container" class="form-container animate-on-scroll" style="max-width: 500px; margin: 0 auto;">
+                    <div class="auth-tabs">
+                        <button class="auth-tab active" data-form="login">Login</button>
+                        <button class="auth-tab" data-form="signup">Sign Up</button>
+                    </div>
+                    <form id="login-form" class="auth-form active" method="POST" action="{{ url_for('get_involved_page') }}">
+                        <input type="hidden" name="form_type" value="login">
+                        <div class="form-header" style="padding-bottom: 10px;"><h3><i class="fas fa-sign-in-alt"></i> Login to Your Account</h3></div>
+                        <div class="form-group"><label for="login-email" class="form-label">Email or Username</label><input type="text" id="login-email" name="login-email" class="form-input" required></div>
+                        <div class="form-group"><label for="login-password" class="form-label">Password</label><input type="password" id="login-password" name="login-password" class="form-input" required></div>
+                        <button type="submit" class="btn-submit">Login</button>
+                    </form>
+                    <form id="signup-form" class="auth-form" method="POST" action="{{ url_for('get_involved_page') }}">
+                        <input type="hidden" name="form_type" value="signup">
+                        <div class="form-header" style="padding-bottom: 10px;"><h3><i class="fas fa-user-plus"></i> Create an Account</h3></div>
+                        <div class="form-group"><label for="signup-name" class="form-label">Full Name</label><input type="text" id="signup-name" name="signup-name" class="form-input" placeholder="John Doe" required></div>
+                        <div class="form-group"><label for="signup-email" class="form-label">Email</label><input type="email" id="signup-email" name="signup-email" class="form-input" required></div>
+                        <div class="form-group"><label for="signup-dob" class="form-label">Date of Birth</label><input type="date" id="signup-dob" name="signup-dob" class="form-input" required></div>
+                        <div class="form-group"><label for="signup-gender" class="form-label">Gender</label><select id="signup-gender" name="signup-gender" class="form-select" required><option value="" disabled selected>Select your gender</option><option value="Male">Male</option><option value="Female">Female</option><option value="Other">Other</option></select></div>
+                        <div class="form-group"><label for="signup-contact" class="form-label">Contact Number</label><input type="tel" id="signup-contact" name="signup-contact" class="form-input" placeholder="Your contact number" required></div>
+                        <div class="form-group"><label for="signup-city" class="form-label">City</label><input type="text" id="signup-city" name="signup-city" class="form-input" placeholder="e.g., New York" required></div>
+                        <div class="form-group"><label for="signup-bloodgroup" class="form-label">Blood Group</label><select id="signup-bloodgroup" name="signup-bloodgroup" class="form-select" required><option value="" disabled selected>Select blood group</option><option value="A+">A+</option><option value="A-">A-</option><option value="B+">B+</option><option value="B-">B-</option><option value="AB+">AB+</option><option value="AB-">AB-</option><option value="O+">O+</option><option value="O-">O-</option></select></div>
+                        <div class="form-group"><label for="signup-password" class="form-label">Password</label><input type="password" id="signup-password" name="signup-password" class="form-input" required></div>
+                        <div class="form-group"><label for="signup-confirm-password" class="form-label">Confirm Password</label><input type="password" id="signup-confirm-password" name="signup-confirm-password" class="form-input" required></div>
+                        <button type="submit" class="btn-submit">Sign Up</button>
+                    </form>
+                </div>
+
+                <div id="request-form-container" class="hidden">
+                    
+                </div>
+            </div>
+        </section>
+{% endblock %}

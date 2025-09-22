@@ -1,0 +1,68 @@
+{% extends "layout.html" %}
+
+{% block title %}FAQs - Oasis{% endblock %}
+
+{% block body_class %}page-faqs{% endblock %}
+
+{% block content %}
+        <section class="page-header">
+            <div class="container">
+                <h1 class="page-title"><i class="fas fa-question-circle"></i> Frequently Asked Questions</h1>
+                <p class="page-subtitle">Find answers to common questions about blood donation and our platform.</p>
+            </div>
+        </section>
+
+        <section class="faq-section">
+            <div class="container faq-container">
+                <div class="faq-page-layout">
+                    <div class="faq-accordion animate-on-scroll">
+                        <div class="faq-item">
+                            <button class="faq-question">Who can donate blood?</button>
+                            <div class="faq-answer">
+                                <p>Most people can give blood if they are in good health. There are some basic requirements you must meet. You must be at least 17 years old, weigh at least 110 lbs, and be in good general health. The requirements can vary by location, so it's best to check with your local donation center.</p>
+                            </div>
+                        </div>
+                        <div class="faq-item">
+                            <button class="faq-question">How often can I donate blood?</button>
+                            <div class="faq-answer">
+                                <p>You must wait at least 8 weeks (56 days) between donations of whole blood. This is to allow your body enough time to replenish its red blood cells. Platelet (apheresis) donors may be able to donate more frequently — as often as every 7 days, up to 24 times a year.</p>
+                            </div>
+                        </div>
+                        <div class="faq-item">
+                            <button class="faq-question">Is it safe to donate blood?</button>
+                            <div class="faq-answer">
+                                <p>Yes, blood donation is very safe. All needles and blood bags are new, sterile, and disposable. A trained phlebotomist will perform the procedure, and your health will be assessed before you donate to ensure you are well enough to do so.</p>
+                            </div>
+                        </div>
+                        <div class="faq-item">
+                            <button class="faq-question">What should I do before donating?</button>
+                            <div class="faq-answer">
+                                <p>Before you donate, it's important to get a good night's sleep, eat a healthy meal (avoiding fatty foods), and drink plenty of fluids. Also, be sure to bring a photo ID with you to the donation center.</p>
+                            </div>
+                        </div>
+                        <div class="faq-item">
+                            <button class="faq-question">How does Oasis verify donors?</button>
+                            <div class="faq-answer">
+                                <p>Our platform encourages donors to get verified through our partner hospitals. A verified donor has had their blood type and health status confirmed by a medical professional, adding a layer of trust and safety to the process. You can search specifically for verified donors on our "Find Donors" page.</p>
+                            </div>
+                        </div>
+                        <div class="faq-item">
+                            <button class="faq-question">What happens to my blood after donation?</button>
+                            <div class="faq-answer">
+                                <p>After donation, your blood is tested for infectious diseases. It's then separated into components like red cells, plasma, and platelets. These components can be used to treat different patients with various medical conditions, meaning a single donation can help multiple people.</p>
+                            </div>
+                        </div>
+                        <div class="faq-item">
+                            <button class="faq-question">Are there any side effects of donating blood?</button>
+                            <div class="faq-answer">
+                                <p>Most people feel fine after donating blood. Some may experience temporary dizziness, lightheadedness, or bruising at the needle site. It's important to rest for a short period after donating and to eat and drink something to help your body recover.</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="faq-image-container animate-on-scroll">
+                        <img src="https://images.unsplash.com/photo-1579684385127-1ef15d508118?auto=format&fit=crop&w=800&q=80" alt="Doctor with a clipboard explaining something.">
+                    </div>
+                </div>
+            </div>
+        </section>
+{% endblock %}

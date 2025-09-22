@@ -1697,6 +1697,13 @@ body.dark-mode .auth-tabs { background: var(--dm-bg); }
 body.dark-mode .auth-tab { color: var(--dm-text-secondary); }
 body.dark-mode .auth-tab.active { background: var(--dm-surface); color: var(--primary-red); }
 
+.profile-detail-prompt {
+    font-size: 0.8rem;
+    color: var(--primary-red);
+    font-weight: 600;
+    text-decoration: underline;
+}
+
 .profile-login-link {
     display: flex;
     flex-direction: column;

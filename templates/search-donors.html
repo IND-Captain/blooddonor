@@ -1,0 +1,61 @@
+{% extends "layout.html" %}
+
+{% block title %}Find Donors - Oasis{% endblock %}
+
+{% block body_class %}page-search-donors{% endblock %}
+
+{% block content %}
+        <section class="page-header">
+            <div class="container">
+                <h1 class="page-title"><i class="fas fa-search"></i> Find a Donor</h1>
+                <p class="page-subtitle">Search for available blood donors in your area. Connect with heroes when it matters most.</p>
+            </div>
+        </section>
+
+        <section class="form-section">
+            <div class="container">
+                <form class="search-container" method="POST" action="{{ url_for('search_donors_page') }}">
+                    <div class="form-group">
+                        <label for="bloodgroup" class="sr-only">Blood Group</label>
+                        <select id="bloodgroup" name="bloodgroup" class="form-select" required>
+                            <option value="" disabled selected>Select Blood Group</option>
+                            <option value="A+">A+</option><option value="A-">A-</option><option value="B+">B+</option><option value="B-">B-</option><option value="AB+">AB+</option><option value="AB-">AB-</option><option value="O+">O+</option><option value="O-">O-</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="city" class="sr-only">City</label>
+                        <input type="text" id="city" name="city" class="form-input" placeholder="Enter City or Zip Code" required>
+                    </div>
+                    <button type="submit" class="btn-primary"><i class="fas fa-search"></i> Search</button>
+                </form>
+
+                <div class="info-box">
+                    <p><i class="fas fa-check-circle"></i>
+                        A <strong>Verified Donor</strong> is someone whose blood type and health status have been confirmed by one of our partner medical facilities.
+                    </p>
+                </div>
+
+                <div class="search-grid">
+                    {% if donors %}
+                        {% for donor in donors %}
+                        <div class="donor-card animate-on-scroll">
+                            <div class="donor-card-header">
+                                <div class="blood-type-icon">{{ donor.blood_group }}</div>
+                                <h3 class="donor-card-name">{{ donor.name }}</h3>
+                            </div>
+                            <div class="donor-card-body">
+                                <div class="donor-info"><i class="fas fa-map-marker-alt"></i> {{ donor.city }}</div>
+                                <div class="donor-info"><i class="fas fa-phone"></i> {{ donor.contact }}</div>
+                            </div>
+                            <div class="donor-card-footer">
+                                <a href="mailto:{{ donor.email }}" class="btn-secondary btn-request-donor">Request</a>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    {% elif request.method == 'POST' %}
+                        <p class="search-results-message">No donors found for your search criteria.</p>
+                    {% endif %}
+                </div>
+            </div>
+        </section>
+{% endblock %}

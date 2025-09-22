@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>{% block title %}Oasis - Save Lives{% endblock %}</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+<link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}" />
+</head>
+<body class="{% block body_class %}{% endblock %}">
+<aside class="desktop-sidebar" aria-label="Primary navigation">
+    <a href="{{ url_for('home') }}" class="logo">
+        <i class="fas fa-heart"></i>
+        <span class="link-text">Oasis</span>
+    </a>
+    <div class="profile">
+        {% if session.user_id %}
+            <a href="{{ url_for('my_profile_page') }}" style="display:flex; flex-direction:column; align-items:center;">
+                <img src="{{ session.get('profile_pic_url', url_for('static', filename='images/default-avatar.png')) }}" class="profile-img" alt="User profile picture" onerror="this.onerror=null;this.src='{{ url_for('static', filename='images/default-avatar.png') }}';" />
+                <h4 class="profile-name">{{ session.username }}</h4>
+                <a href="{{ url_for('my_profile_page') }}" class="edit-profile-link">Edit Profile</a>
+            </a>
+            <a href="{{ url_for('logout') }}" class="logout-link" style="margin-top: 10px; color: #d14;">Logout</a>
+        {% else %}
+            <a href="{{ url_for('get_involved_page') }}" class="profile-login-link">
+                <i class="fas fa-user-circle profile-icon-default"></i>
+                <h4 class="profile-name">Sign In / Sign Up</h4>
+            </a>
+        {% endif %}
+    </div>
+    <ul class="sidebar-nav">
+        <li><a href="{{ url_for('home') }}" class="{{ 'active' if request.endpoint == 'home' else '' }}"><i class="fas fa-home"></i> Home</a></li>
+        {% if session.user_id %}
+        <li><a href="{{ url_for('my_profile_page') }}" class="{{ 'active' if request.endpoint == 'my_profile_page' else '' }}"><i class="fas fa-user-edit"></i> My Profile</a></li>
+        {% endif %}
+        <li><a href="{{ url_for('get_involved_page') }}" class="{{ 'active' if request.endpoint == 'get_involved_page' else '' }}"><i class="fas fa-hands-helping"></i> Get Involved</a></li>
+        <li><a href="{{ url_for('search_donors_page') }}" class="{{ 'active' if request.endpoint == 'search_donors_page' else '' }}"><i class="fas fa-search"></i> Find Donors</a></li>
+        <li><a href="{{ url_for('leaderboard_page') }}" class="{{ 'active' if request.endpoint == 'leaderboard_page' else '' }}"><i class="fas fa-trophy"></i> Leaderboard</a></li>
+        <li><a href="{{ url_for('faqs_page') }}" class="{{ 'active' if request.endpoint == 'faqs_page' else '' }}"><i class="fas fa-question-circle"></i> FAQs</a></li>
+        <li><a href="{{ url_for('admin_login_page') }}" class="{{ 'active' if 'admin' in request.endpoint else '' }}"><i class="fas fa-user-shield"></i> Admin</a></li>
+    </ul>
+    <div class="sidebar-footer">
+        <div class="dark-mode-toggle">
+            <i class="fas fa-sun"></i>
+            <label class="switch">
+                <input type="checkbox" id="darkModeToggle" />
+                <span class="slider round"></span>
+            </label>
+            <i class="fas fa-moon"></i>
+        </div>
+    </div>
+</aside>
+
+   <footer role="contentinfo">
+        <div class="container">
+            <div class="footer-content">
+                <div class="footer-section">
+                    <h4>Oasis</h4>
+                    <p>Connecting life-savers with those in need. Our mission is to ensure no one suffers due to blood shortage by building a strong community of donors.</p>
+                </div>
+                <div class="footer-section">
+                    <h4>Quick Links</h4>
+                    <ul class="footer-links">
+                        <li><a href="{{ url_for('home') }}">Home</a></li>
+                        <li><a href="{{ url_for('get_involved_page') }}">Get Involved</a></li>
+                        <li><a href="{{ url_for('search_donors_page') }}">Find Donors</a></li>
+                    </ul>
+                </div>
+                <div class="footer-section">
+                    <h4>Support</h4>
+                    <ul class="footer-links">
+                        <li><a href="{{ url_for('faqs_page') }}">FAQs</a></li>
+                        <li><a href="#">Contact Us</a></li>
+                        <li><a href="{{ url_for('emergency_request_page') }}">Emergency Support</a></li>
+                    </ul>
+                </div>
+                <div class="footer-section">
+                    <h4>Legal</h4>
+                    <ul class="footer-links">
+                        <li><a href="#">Privacy Policy</a></li>
+                        <li><a href="#">Terms of Service</a></li>
+                    </ul>
+                </div>
+            </div>
+            <div class="footer-bottom">
+                <p>&copy; 2025 Oasis. All rights reserved. Saving lives through technology and community.</p>
+            </div>
+        </div>
+    </footer>
+{% block content %}{% endblock %}
+
+<script src="{{ url_for('static', filename='js/script.js') }}"></script>
+{% block scripts %}{% endblock %}
+</body>
+</html>
