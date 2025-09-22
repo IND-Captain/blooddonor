@@ -6,11 +6,6 @@ admin.initializeApp();
 
 const db = admin.firestore();
 
-/**
- * Blood compatibility rules.
- * Key: Recipient's blood type.
- * Value: Array of compatible donor blood types.
- */
 const bloodCompatibility = {
     'A+': ['A+', 'A-', 'O+', 'O-'],
     'A-': ['A-', 'O-'],
@@ -22,23 +17,14 @@ const bloodCompatibility = {
     'O-': ['O-'],
 };
 
-/**
- * AI-driven scoring weights for donor matching.
- * These can be tuned over time based on real-world data.
- */
 const scoringWeights = {
-    perfectMatch: 50, // High score for a perfect blood type match
-    proximity: 30,    // Score based on distance (closer is better)
-    recency: 20,      // Score based on how long it's been since the last donation
+    perfectMatch: 50,
+    proximity: 30,
+    recency: 20,
 };
 
-// The maximum distance (in meters) we'll consider for proximity scoring.
-const MAX_DISTANCE_FOR_SCORING = 25000; // 25 km
+const MAX_DISTANCE_FOR_SCORING = 25000;
 
-/**
- * Triggered when a new blood request is created.
- * This function finds eligible donors and sends them notifications.
- */
 exports.onRequestCreate = functions.firestore
     .document('requests/{requestId}')
     .onCreate(async (snap, context) => {
@@ -47,7 +33,6 @@ exports.onRequestCreate = functions.firestore
 
         functions.logger.log(`New request ${context.params.requestId} for blood type ${bloodType} in ${city}.`);
 
-        // 1. Determine compatible donor blood types
         const compatibleDonorTypes = bloodCompatibility[bloodType];
         if (!compatibleDonorTypes || compatibleDonorTypes.length === 0) {
             functions.logger.error(`Invalid blood type in request: ${bloodType}`);
@@ -56,12 +41,9 @@ exports.onRequestCreate = functions.firestore
 
         functions.logger.log(`Compatible donor types: ${compatibleDonorTypes.join(", ")}`);
 
-        // 2. Geospatial Query for eligible donors
         try {
-            // Use a wider radius for emergencies
-            const radiusInM = isEmergency ? 50 * 1000 : 25 * 1000; // 50km for emergency, 25km otherwise
+            const radiusInM = isEmergency ? 50 * 1000 : 25 * 1000;
 
-            // Get the bounding box for the query
             const bounds = geolib.getBoundsOfDistance(
                 { latitude: location.latitude, longitude: location.longitude },
                 radiusInM
@@ -69,11 +51,9 @@ exports.onRequestCreate = functions.firestore
 
             const donorsRef = db.collection('donors');
 
-            // Calculate the date 56 days ago (standard minimum time between donations)
             const minDonationDate = new Date();
             minDonationDate.setDate(minDonationDate.getDate() - 56);
 
-            // Build the broad-phase query using the bounding box
             const query = donorsRef
                 .where('bloodType', 'in', compatibleDonorTypes)
                 .where('availability', '==', 'available')
@@ -87,7 +67,6 @@ exports.onRequestCreate = functions.firestore
                 return null;
             }
 
-            // 3. Refine, Score, and Rank Eligible Donors
             const eligibleDonors = [];
             querySnapshot.forEach(doc => {
                 const donor = doc.data();
@@ -96,7 +75,6 @@ exports.onRequestCreate = functions.firestore
                     { latitude: donor.location.latitude, longitude: donor.location.longitude }
                 );
                 
-                // Filter out donors outside the radius and those who donated recently
                 if (distanceInM <= radiusInM && (!donor.lastDonationDate || donor.lastDonationDate.toDate() < minDonationDate)) {
                     const score = calculateScore(donor, request, distanceInM);
                     eligibleDonors.push({ id: doc.id, score, ...donor });
@@ -108,20 +86,15 @@ exports.onRequestCreate = functions.firestore
                 return null;
             }
 
-            // Sort donors by score in descending order
             eligibleDonors.sort((a, b) => b.score - a.score);
 
             functions.logger.log(`Ranked ${eligibleDonors.length} potential donors.`);
 
-            // 4. Select top N donors for notification
-            const topDonors = eligibleDonors.slice(0, 10); // Notify the top 10 best matches
-
-            // Log the top donors and their scores for analytics
+            const topDonors = eligibleDonors.slice(0, 10);
             topDonors.forEach(d => {
                 functions.logger.log(`  - Donor: ${d.id}, Score: ${d.score.toFixed(2)}`);
             });
 
-            // 5. Get FCM tokens for the top donors
             const fcmTokens = [];
             for (const donor of topDonors) {
                 const userSnap = await db.collection('users').doc(donor.id).get();
@@ -135,13 +108,10 @@ exports.onRequestCreate = functions.firestore
                 return null;
             }
 
-            // 6. Send targeted notifications via FCM
             const payload = {
                 notification: {
                     title: `Urgent Blood Request: ${bloodType}`,
                     body: `A patient at ${request.hospitalName} in your city needs your help.`,
-                    // You can add more data to handle clicks in your app
-                    // click_action: `https://your-app-url/requests/${context.params.requestId}`
                 },
             };
 

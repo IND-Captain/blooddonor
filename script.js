@@ -13,19 +13,16 @@ import { ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/fireba
     const desktopSidebar = document.querySelector('.desktop-sidebar');
     const darkModeToggle = document.getElementById('darkModeToggle');
 
-    // --- BLOOD COMPATIBILITY RULES ---
     const bloodCompatibility = {
         'A+': ['A+', 'A-', 'O+', 'O-'],
         'A-': ['A-', 'O-'],
         'B+': ['B+', 'B-', 'O+', 'O-'],
         'B-': ['B-', 'O-'],
-        'AB+': ['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'], // Universal Recipient
+        'AB+': ['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'],
         'AB-': ['A-', 'B-', 'AB-', 'O-'],
         'O+': ['O+', 'O-'],
-        'O-': ['O-'], // Universal Donor
+        'O-': ['O-'],
     };
-
-    // --- SPA & Routing Logic ---
 
     const pageInitializers = {
         '/': initializeHomepage,
@@ -41,12 +38,10 @@ import { ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/fireba
 
     const loadContent = async (url, pushState = true) => {
         try {
-            // Default to index.html if URL is just "/"
             const fetchUrl = url === '/' ? '/index.html' : url;
             const response = await fetch(fetchUrl);
             if (!response.ok) {
                 console.error("Page not found:", url);
-                // Optionally, load a 404 page content
                 mainContent.innerHTML = `<section class="page-header"><div class="container"><h1>404 - Page Not Found</h1><p>Sorry, the page you are looking for does not exist.</p></div></section>`;
                 return;
             }
@@ -65,12 +60,10 @@ import { ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/fireba
                     history.pushState({ path: url }, newTitle, url);
                 }
 
-                // Run page-specific scripts
                 const pagePath = new URL(url, window.location.origin).pathname;
                 if (pageInitializers[pagePath]) {
                     pageInitializers[pagePath]();
                 }
-                // Always run scroll animations for new content
                 initializeScrollAnimations();
                 updateActiveLink(url);
             }
@@ -91,13 +84,11 @@ import { ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/fireba
         });
     };
 
-    // Handle clicks on all navigation links
     document.addEventListener('click', e => {
         const link = e.target.closest('a');
         if (link && (link.matches('.sidebar-nav a, .nav-links a, .logo') || link.closest('.hero-buttons'))) {
             e.preventDefault();
             const href = link.getAttribute('href');
-            // Close mobile menu if open
             if (mobileSidebar.classList.contains('active')) {
                 toggleMobileMenu();
             }
@@ -107,27 +98,22 @@ import { ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/fireba
         }
     });
 
-    // Handle browser back/forward
     window.addEventListener('popstate', e => {
         if (e.state && e.state.path) {
             loadContent(e.state.path, false);
         } else {
-            // Fallback for initial state
             loadContent(location.pathname, false);
         }
     });
 
-    // Run initializer for the current page that was loaded directly
     const currentPagePath = window.location.pathname;
     if (pageInitializers[currentPagePath]) {
         pageInitializers[currentPagePath]();
     } else if (currentPagePath === '/' || currentPagePath.endsWith('index.html')) {
         initializeHomepage();
     }
-    initializeScrollAnimations(); // Make sure animations run on initial load
+    initializeScrollAnimations();
 
-    // --- GLOBAL AUTH LISTENER ---
-    // This runs once and keeps the UI in sync with the user's auth state.
     onAuthStateChanged(auth, user => {
         if (user) {
             updateUIForLoggedInUser(user);
@@ -135,8 +121,6 @@ import { ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/fireba
             updateUIForLoggedOutUser();
         }
     });
-
-    // --- Page Initializer Functions ---
 
     function initializeScrollAnimations() {
         const animatedElements = document.querySelectorAll('.animate-on-scroll');
@@ -154,7 +138,6 @@ import { ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/fireba
     }
 
     function initializeHomepage() {
-        // 5. Homepage: Animated counter for statistics
         const statNumbers = document.querySelectorAll('.stat-number');
         if (statNumbers.length > 0) {
             const statObserver = new IntersectionObserver((entries, observer) => {
@@ -162,7 +145,7 @@ import { ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/fireba
                     if (entry.isIntersecting && !entry.target.classList.contains('animated')) {
                         animateCounter(entry.target);
                         entry.target.classList.add('animated');
-                        observer.unobserve(entry.target); // Stop observing after animation
+                        observer.unobserve(entry.target);
                     }
                 });
             }, { threshold: 0.5 });
@@ -177,7 +160,6 @@ import { ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/fireba
         const feed = document.getElementById('activity-feed');
         if (!feed) return;
 
-        // In a real app, this would fetch data from Firestore
         const mockActivities = [
             { icon: 'fa-user-plus', text: '<strong>John D.</strong> just registered as a new donor in <strong>New York</strong>.', time: '5m ago' },
             { icon: 'fa-tint', text: 'A request for <strong>A+</strong> blood was fulfilled in <strong>Chicago</strong>.', time: '12m ago' },
@@ -186,7 +168,7 @@ import { ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/fireba
             { icon: 'fa-tint', text: 'An emergency request for <strong>O-</strong> was created in <strong>New York</strong>.', time: '1h ago' },
         ];
 
-        feed.innerHTML = ''; // Clear existing
+        feed.innerHTML = '';
         mockActivities.forEach(activity => {
             const item = document.createElement('li');
             item.className = 'activity-item';
@@ -200,20 +182,14 @@ import { ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/fireba
     }
 
     function initializeGetInvolvedPage() {
-        // When this page loads (either directly or via SPA nav),
-        // we need to immediately show the correct set of forms based on auth state.
-        // The global onAuthStateChanged listener handles this for login/logout events,
-        // but this handles the initial page view upon navigation.
         if (auth.currentUser) {
             updateUIForLoggedInUser(auth.currentUser);
         } else {
             updateUIForLoggedOutUser();
         }
 
-        // 1. Handle multi-step donor registration form
         initializeDonorRegisterForm();
     
-        // 2. Handle auth forms (signup/login)
         const signupForm = document.getElementById('signup-form');
         signupForm?.addEventListener('submit', async (e) => {
             e.preventDefault();
@@ -221,12 +197,10 @@ import { ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/fireba
             const password = signupForm.querySelector('#signup-password').value;
             try {
                 const userCredential = await createUserWithEmailAndPassword(auth, email, password);
-                // This will trigger onAuthStateChanged, which handles the UI update
                 console.log('Signed up:', userCredential.user);
-                // Create a user document in Firestore
                 await setDoc(doc(db, "users", userCredential.user.uid), {
                     email: userCredential.user.email,
-                    role: 'donor', // default role
+                    role: 'donor',
                     createdAt: new Date()
                 });
             } catch (error) {
@@ -241,64 +215,14 @@ import { ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/fireba
             const password = loginForm.querySelector('#login-password').value;
             try {
                 const userCredential = await signInWithEmailAndPassword(auth, email, password);
-                // This will trigger onAuthStateChanged
                 console.log('Logged in:', userCredential.user);
             } catch (error) {
                 alert(error.message);
             }
         });
-
-        // 3. Handle standard blood request form
-        const requestForm = document.querySelector('#bloodRequestForm');
-        if (requestForm) {
-            requestForm.addEventListener('submit', async (e) => {
-                e.preventDefault();
-
-                if (!validateForm(requestForm)) {
-                    alert("Please fill out all required fields correctly.");
-                    return;
-                }
-
-                if (!auth.currentUser) {
-                    alert("You must be logged in to make a request.");
-                    return;
-                }
-
-                const formData = new FormData(requestForm);
-                const requestData = {
-                    requesterId: auth.currentUser.uid,
-                    patientName: formData.get('patient-name'),
-                    bloodType: formData.get('bloodgroup'),
-                    unitsRequired: Number(formData.get('units')),
-                    hospitalName: formData.get('hospital'),
-                    city: formData.get('hospital').split(',')[1]?.trim() || 'Unknown',
-                    isEmergency: false,
-                    status: 'pending',
-                    createdAt: new Date(),
-                };
-
-                try {
-                    const docRef = await addDoc(collection(db, "requests"), requestData);
-                    console.log("Request submitted with ID: ", docRef.id);
-                    const formContainer = requestForm.closest('.form-container');
-                    formContainer.innerHTML = `
-                        <div class="form-header">
-                            <h3>Thank You!</h3>
-                        </div>
-                        <div class="info-box" style="text-align: center;">
-                            <p><i class="fas fa-check-circle"></i> Your blood request has been submitted. Our system will now find and notify compatible donors.</p>
-                        </div>
-                    `;
-                } catch (error) {
-                    console.error("Error adding request: ", error);
-                    alert("There was an error submitting your request. Please try again.");
-                }
-            });
-        }
     }
 
     function initializeDonorRegisterForm() {
-        // 6. Donor Registration: Multi-step form
         const registrationForm = document.getElementById('registrationForm');
         if (registrationForm) {
             const formSteps = registrationForm.querySelectorAll('.form-step');
@@ -306,9 +230,8 @@ import { ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/fireba
             const prevButtons = registrationForm.querySelectorAll('.btn-prev');
             const progress = registrationForm.querySelector('.progress-bar .progress');
             const progressSteps = registrationForm.querySelectorAll('.progress-bar .step');
-            let currentStep = 0; // Step index starts at 0
+            let currentStep = 0;
 
-            // Image preview logic
             const pictureInput = registrationForm.querySelector('#profile-picture');
             const picturePreview = registrationForm.querySelector('#picture-preview');
             pictureInput?.addEventListener('change', (e) => {
@@ -331,8 +254,7 @@ import { ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/fireba
                     return;
                 }
 
-                // Handle file upload first
-                let profilePictureUrl = "https://i.pravatar.cc/150"; // Default
+                let profilePictureUrl = "https://i.pravatar.cc/150";
                 const file = pictureInput.files[0];
                 if (file) {
                     try {
@@ -343,13 +265,12 @@ import { ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/fireba
                     } catch (error) {
                         console.error("Error uploading profile picture:", error);
                         alert("Could not upload profile picture. Please try again.");
-                        return; // Stop submission if upload fails
+                        return;
                     }
                 }
 
                 const formData = new FormData(registrationForm);
                 const donorData = {
-                    // The UID comes from the authenticated user
                     uid: auth.currentUser.uid, 
                     fullName: formData.get('fullname'),
                     dob: new Date(formData.get('dob')),
@@ -360,15 +281,13 @@ import { ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/fireba
                     bloodType: formData.get('bloodgroup'),
                     profilePictureUrl: profilePictureUrl,
                     lastDonationDate: formData.get('last-donation') ? new Date(formData.get('last-donation')) : null,
-                    isVerified: false, // Verification is an admin task
+                    isVerified: false,
                     availability: 'available',
                     totalDonations: 0,
                     createdAt: new Date()
                 };
 
-                // WRITE TO FIREBASE
                 try {
-                    // Use the user's UID as the document ID for a 1-to-1 mapping
                     await setDoc(doc(db, "donors", auth.currentUser.uid), donorData);
                     await updateUIForLoggedInUser(auth.currentUser); // Refresh sidebar with new info
                     console.log("Donor registered successfully!");
@@ -407,7 +326,6 @@ import { ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/fireba
 
             nextButtons.forEach(button => {
                 button.addEventListener('click', () => {
-                    // Validate current step before proceeding
                     const currentFormStep = button.closest('.form-step');
                     if (!validateForm(currentFormStep)) {
                         alert("Please fill out all required fields before proceeding.");
@@ -438,7 +356,6 @@ import { ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/fireba
         const searchGrid = document.querySelector('.search-grid');
         const searchForm = document.querySelector('.search-container');
 
-        // Initial render of all available donors
         if (searchGrid) {
             searchGrid.innerHTML = `<p class="search-results-message">Searching for available donors...</p>`;
             const donorsCol = collection(db, 'donors');
@@ -457,7 +374,6 @@ import { ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/fireba
 
                 const compatibleBloodGroups = bloodCompatibility[requestedBloodGroup] || [];
 
-                // Build the Firestore query
                 const donorsRef = collection(db, "donors");
                 const q = query(donorsRef, 
                     where("city", "==", city), 
@@ -469,11 +385,25 @@ import { ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/fireba
                 const filteredDonors = querySnapshot.docs.map(doc => ({id: doc.id, ...doc.data()}));
                 renderDonors(filteredDonors, searchGrid);
             });
+
+            searchGrid.addEventListener('click', (e) => {
+                if (e.target.classList.contains('btn-request-donor')) {
+                    if (!auth.currentUser) {
+                        alert("Please log in to request blood.");
+                        loadContent('/get-involved.html');
+                        return;
+                    }
+                    const donorId = e.target.dataset.donorId;
+                    const donorName = e.target.dataset.donorName;
+                    const donorBloodType = e.target.dataset.donorBloodType;
+                    showBloodRequestModal(donorId, donorName, donorBloodType);
+                }
+            });
         }
     }
 
     function renderDonors(donors, container) {
-        container.innerHTML = ''; // Clear previous results
+        container.innerHTML = '';
 
         if (donors.length === 0) {
             container.innerHTML = `<p class="search-results-message">No donors found matching your criteria. Please try a different search.</p>`;
@@ -503,7 +433,7 @@ import { ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/fireba
                     ${availability}
                 </div>
                 <div class="donor-card-footer">
-                    <a href="#" class="btn-secondary">Request</a>
+                    <button class="btn-secondary btn-request-donor" data-donor-id="${donor.id}" data-donor-name="${donor.fullName}" data-donor-blood-type="${donor.bloodType}">Request</button>
                 </div>
             `;
             container.appendChild(donorCard);
@@ -511,7 +441,6 @@ import { ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/fireba
     }
 
     function initializeFaqs() {
-        // 7. FAQs Page: Accordion
         const faqQuestions = document.querySelectorAll('.faq-question');
         if (faqQuestions.length > 0) {
             faqQuestions.forEach(question => {
@@ -530,12 +459,23 @@ import { ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/fireba
     }
 
     async function updateUIForLoggedInUser(user) {
-        // Update the Get Involved page forms
         document.getElementById('auth-container')?.classList.add('hidden');
         const formsContainer = document.getElementById('forms-container');
+        const donorDoc = await getDoc(doc(db, "donors", user.uid));
+
         if (formsContainer) {
             formsContainer.classList.remove('hidden');
             const userStatusDiv = formsContainer.querySelector('#user-status');
+
+            const registrationFormContainer = document.getElementById('registrationForm')?.closest('.form-container');
+            if (registrationFormContainer) {
+                if (donorDoc.exists()) {
+                    registrationFormContainer.innerHTML = `<div class="info-box"><p><i class="fas fa-check-circle"></i> You are already registered as a donor. Thank you for your commitment! You can manage your profile from the "My Profile" page.</p></div>`;
+                } else {
+                    registrationFormContainer.style.display = 'block';
+                }
+            }
+
             if (userStatusDiv) {
                 userStatusDiv.innerHTML = `
                 <p>Logged in as: <strong>${user.email}</strong></p>
@@ -544,16 +484,14 @@ import { ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/fireba
                 document.getElementById('logout-button')?.addEventListener('click', async () => {
                     await signOut(auth);
                     console.log('User signed out');
+                    loadContent(window.location.pathname);
                 });
             }
         }
 
-        // Show "My Profile" link if user is logged in
         const myProfileLink = document.getElementById('my-profile-nav-link');
         if (myProfileLink) myProfileLink.classList.remove('hidden');
 
-        // Update the sidebar profile
-        const donorDoc = await getDoc(doc(db, "donors", user.uid));
         const profileContainer = document.querySelector('.desktop-sidebar .profile');
         if (profileContainer) {
             if (donorDoc.exists()) {
@@ -566,7 +504,6 @@ import { ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/fireba
                     </div>
                 `;
             } else {
-                // User is logged in but hasn't created a donor profile yet
                 profileContainer.innerHTML = `
                     <img src="https://i.pravatar.cc/150?u=${user.uid}" alt="User profile picture" class="profile-img">
                     <div class="profile-info">
@@ -577,23 +514,19 @@ import { ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/fireba
             }
         }
 
-        // Re-initialize animations for any newly visible elements
         initializeScrollAnimations();
     }
 
     function updateUIForLoggedOutUser() {
-        // Update the Get Involved page
         document.getElementById('auth-container')?.classList.remove('hidden');
         const formsContainer = document.getElementById('forms-container');
         if (formsContainer) {
             formsContainer.classList.add('hidden');
         }
 
-        // Hide "My Profile" link
         const myProfileLink = document.getElementById('my-profile-nav-link');
         if (myProfileLink) myProfileLink.classList.add('hidden');
 
-        // Reset the sidebar profile to its default state
         const profileContainer = document.querySelector('.desktop-sidebar .profile');
         if (profileContainer) {
             profileContainer.innerHTML = `
@@ -605,8 +538,85 @@ import { ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/fireba
             `;
         }
 
-        // Re-initialize animations for any newly visible elements
         initializeScrollAnimations();
+    }
+
+    function showBloodRequestModal(donorId, donorName, donorBloodType) {
+        const modalOverlay = document.createElement('div');
+        modalOverlay.className = 'modal-overlay active';
+        modalOverlay.innerHTML = `
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3>Request Blood from ${donorName} (${donorBloodType})</h3>
+                    <button id="close-modal" style="background:none; border:none; font-size:1.5rem; cursor:pointer;">&times;</button>
+                </div>
+                <form id="modal-request-form" novalidate>
+                    <div class="form-group">
+                        <label for="patient-name" class="form-label">Patient's Full Name</label>
+                        <input type="text" id="patient-name" name="patient-name" class="form-input" placeholder="Enter patient's name" required>
+                        <span class="error-message"></span>
+                    </div>
+                    <div class="form-group">
+                        <label for="units" class="form-label">Required Units</label>
+                        <input type="number" id="units" name="units" class="form-input" placeholder="Number of units needed" required min="1">
+                        <span class="error-message"></span>
+                    </div>
+                    <div class="form-group">
+                        <label for="hospital" class="form-label">Hospital Name & Address</label>
+                        <input type="text" id="hospital" name="hospital" class="form-input" placeholder="e.g., City General Hospital, New York" required>
+                        <span class="error-message"></span>
+                    </div>
+                    <div class="form-group">
+                        <label for="reason" class="form-label">Reason for Request</label>
+                        <textarea id="reason" name="reason" class="form-textarea" placeholder="Briefly describe the reason (e.g., Surgery, Accident)"></textarea>
+                    </div>
+                    <div class="form-group">
+                        <button type="submit" class="btn-submit"><i class="fas fa-paper-plane"></i> Submit Request</button>
+                    </div>
+                </form>
+            </div>
+        `;
+        document.body.appendChild(modalOverlay);
+
+        const closeModal = () => modalOverlay.remove();
+        modalOverlay.querySelector('#close-modal').addEventListener('click', closeModal);
+        modalOverlay.addEventListener('click', (e) => {
+            if (e.target === modalOverlay) closeModal();
+        });
+
+        const form = modalOverlay.querySelector('#modal-request-form');
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            if (!validateForm(form)) {
+                alert("Please fill out all required fields.");
+                return;
+            }
+
+            const formData = new FormData(form);
+            const donorDoc = await getDoc(doc(db, "donors", donorId));
+            if (!donorDoc.exists()) {
+                alert("Donor not found.");
+                closeModal();
+                return;
+            }
+            const donorData = donorDoc.data();
+
+            const requestData = {
+                requesterId: auth.currentUser.uid,
+                donorId: donorId,
+                patientName: formData.get('patient-name'),
+                bloodType: donorData.bloodType,
+                unitsRequired: Number(formData.get('units')),
+                hospitalName: formData.get('hospital'),
+                city: donorData.city,
+                isEmergency: false,
+                status: 'pending',
+                createdAt: new Date(),
+            };
+
+            await addDoc(collection(db, "requests"), requestData);
+            form.closest('.modal-content').innerHTML = `<div class="form-header"><h3>Request Sent!</h3></div><div class="info-box"><p><i class="fas fa-check-circle"></i> Your request has been sent to ${donorName}. They will be notified to respond.</p></div>`;
+        });
     }
 
     function validateForm(form) {
@@ -655,7 +665,6 @@ import { ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/fireba
             return;
         }
 
-        // User is an admin, render the panel
         container.innerHTML = `
             <div class="admin-tabs">
                 <div class="admin-tab active" data-tab="donors">Donor Management</div>
@@ -700,7 +709,6 @@ import { ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/fireba
             </div>
         `;
 
-        // Tab switching logic
         const tabs = container.querySelectorAll('.admin-tab');
         const tabContents = container.querySelectorAll('.admin-tab-content');
         tabs.forEach(tab => {
@@ -714,9 +722,8 @@ import { ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/fireba
             });
         });
 
-        // Load data for tabs
         await loadDonorsForAdmin();
-        loadRequestsForAdmin(); // Using onSnapshot for real-time updates
+        loadRequestsForAdmin();
         await initializeBroadcastForm();
         await loadAdminReports();
     }
@@ -725,7 +732,6 @@ import { ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/fireba
         const tableBody = document.querySelector('#donors-table tbody');
         if (!tableBody) return;
 
-        // Fetch all users, then get their donor profile
         const q = query(collection(db, "users"), orderBy("createdAt", "desc"));
         const querySnapshot = await getDocs(q);
 
@@ -771,7 +777,6 @@ import { ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/fireba
             tableBody.appendChild(row);
         }
 
-        // Add event listeners for all action buttons
         tableBody.addEventListener('click', async (e) => {
             const target = e.target;
             const uid = target.dataset.uid;
@@ -783,7 +788,7 @@ import { ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/fireba
                 const donorRef = doc(db, "donors", uid);
                 await updateDoc(donorRef, { isVerified: true });
                 alert(`Donor ${uid} has been verified.`);
-                loadDonorsForAdmin(); // Refresh the list
+                loadDonorsForAdmin();
             }
 
             if (target.classList.contains('btn-suspend')) {
@@ -791,7 +796,7 @@ import { ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/fireba
                 if (confirm(`Are you sure you want to ${shouldDisable ? 'suspend' : 'unsuspend'} this user?`)) {
                     const suspendUser = httpsCallable(functions, 'suspendUser');
                     await suspendUser({ uid, disabled: shouldDisable });
-                    loadDonorsForAdmin(); // Refresh the list
+                    loadDonorsForAdmin();
                 }
             }
 
@@ -799,7 +804,7 @@ import { ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/fireba
                 if (confirm(`Are you sure you want to permanently delete this user? This action cannot be undone.`)) {
                     const deleteUser = httpsCallable(functions, 'deleteUser');
                     await deleteUser({ uid });
-                    target.closest('tr').remove(); // Remove from UI immediately
+                    target.closest('tr').remove();
                 }
             }
 
@@ -847,7 +852,7 @@ import { ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/fireba
                 await changeUserRole({ uid, newRole });
                 alert('Role updated successfully!');
                 closeModal();
-                loadDonorsForAdmin(); // Refresh the list
+                loadDonorsForAdmin();
             }
         });
     }
@@ -893,7 +898,6 @@ import { ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/fireba
                 button.addEventListener('click', async () => {
                     const requestId = button.dataset.id;
                     await updateDoc(doc(db, "requests", requestId), { status: 'closed' });
-                    // The onSnapshot listener will automatically update the UI
                 });
             });
         });
@@ -911,7 +915,6 @@ import { ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/fireba
         const broadcastForm = document.getElementById('broadcast-form');
         if (!citySelect || !broadcastForm) return;
 
-        // Populate city dropdown
         const donorsSnapshot = await getDocs(collection(db, "donors"));
         const cities = new Set();
         donorsSnapshot.forEach(doc => {
@@ -926,7 +929,6 @@ import { ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/fireba
             citySelect.appendChild(option);
         });
 
-        // Handle form submission
         broadcastForm.addEventListener('submit', async (e) => {
             e.preventDefault();
             const city = citySelect.value;
@@ -963,7 +965,6 @@ import { ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/fireba
 
         const donorData = donorSnap.data();
 
-        // Render the form
         container.innerHTML = `
             <form id="profile-edit-form" novalidate>
                 <div class="form-header"><h3>Edit Your Profile</h3></div>
@@ -998,7 +999,6 @@ import { ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/fireba
         const inputs = form.querySelectorAll('input, select');
 
         editBtn.addEventListener('click', () => {
-            // Switch to edit mode
             inputs.forEach(input => input.disabled = false);
             buttonsContainer.innerHTML = `
                 <button type="submit" class="btn-submit">Save Changes</button>
@@ -1006,7 +1006,6 @@ import { ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/fireba
             `;
 
             document.getElementById('cancel-edit-btn').addEventListener('click', () => {
-                // Re-initialize to reset the form to its original state
                 initializeMyProfilePage();
             });
         });
@@ -1028,8 +1027,8 @@ import { ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/fireba
             try {
                 await updateDoc(donorRef, updatedData);
                 alert("Profile updated successfully!");
-                await updateUIForLoggedInUser(user); // Refresh sidebar
-                initializeMyProfilePage(); // Reset form to view mode
+                await updateUIForLoggedInUser(user);
+                initializeMyProfilePage();
             } catch (error) {
                 console.error("Error updating profile: ", error);
                 alert("Failed to update profile. Please try again.");
@@ -1049,7 +1048,7 @@ import { ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/fireba
             }
 
             const bloodGroup = emergencyForm.querySelector('#bloodgroup').value;
-            const city = emergencyForm.querySelector('#city').value; // This contains hospital and city
+            const city = emergencyForm.querySelector('#city').value;
             const phone = emergencyForm.querySelector('#contact-phone').value;
 
             if (!bloodGroup || !city || !phone) {
@@ -1059,7 +1058,7 @@ import { ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/fireba
 
             const requestData = {
                 requesterId: auth.currentUser.uid,
-                patientName: 'Emergency', // Placeholder name
+                patientName: 'Emergency',
                 bloodType: bloodGroup,
                 hospitalName: city,
                 city: city.split(',')[1]?.trim() || 'Unknown',
@@ -1077,7 +1076,6 @@ import { ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/fireba
         renderLeaderboard();
     }
 
-    // --- Dark Mode Logic ---
     const applyTheme = (theme) => {
         if (theme === 'dark') {
             body.classList.add('dark-mode');
@@ -1092,7 +1090,6 @@ import { ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/fireba
     if (savedTheme) {
         applyTheme(savedTheme);
     } else {
-        // Check for system preference if no theme is saved
         const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
         if (prefersDark) {
             applyTheme('dark');
@@ -1111,9 +1108,6 @@ import { ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/fireba
         });
     }
 
-    // --- General Site-wide UI Logic ---
-
-    // 1. Header scroll effect
     if (header) {
         window.addEventListener('scroll', () => {
             if (window.scrollY > 50) {
@@ -1124,13 +1118,11 @@ import { ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/fireba
         });
     }
 
-    // 2. Mobile menu toggle
     function toggleMobileMenu() {
         if (menuToggle && mobileSidebar && mobileOverlay) {
             menuToggle.classList.toggle('active');
             mobileSidebar.classList.toggle('active');
             mobileOverlay.classList.toggle('active');
-            // Prevent body scroll when mobile menu is open
             body.style.overflow = mobileSidebar.classList.contains('active') ? 'hidden' : 'auto';
         }
     }
@@ -1138,7 +1130,6 @@ import { ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/fireba
     if (menuToggle) menuToggle.addEventListener('click', toggleMobileMenu);
     if (mobileOverlay) mobileOverlay.addEventListener('click', toggleMobileMenu);
 
-    // 3. Desktop sidebar activation & body padding adjustment
     function handleSidebar() {
         if (desktopSidebar && window.innerWidth > 768) {
             body.classList.add('sidebar-active');
@@ -1153,7 +1144,7 @@ import { ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/fireba
         function animateCounter(element) {
             const target = parseInt(element.getAttribute('data-count'));
             const duration = 2000;
-            const frameRate = 16; // approx 60fps
+            const frameRate = 16;
             const increment = target / (duration / frameRate);
             let current = 0;
 
@@ -1168,12 +1159,10 @@ import { ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/fireba
             }, frameRate);
         }
 
-    // --- Leaderboard Logic ---
     async function renderLeaderboard() {
         const leaderboardBody = document.getElementById('leaderboard-body');
         if (!leaderboardBody) return;
 
-        // In a real application, you would fetch this data from your backend API
         leaderboardBody.innerHTML = `<tr><td colspan="5" style="text-align:center;">Loading leaderboard...</td></tr>`;
 
         const donorsRef = collection(db, "donors");
@@ -1187,7 +1176,7 @@ import { ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/fireba
             return;
         }
 
-        leaderboardBody.innerHTML = ''; // Clear existing data
+        leaderboardBody.innerHTML = '';
 
         donors.forEach((donor, index) => {
             const rank = index + 1;
