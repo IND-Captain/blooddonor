@@ -411,10 +411,17 @@ def request_donor_page(donor_id):
         flash("Database connection failed.", "danger")
         return redirect(url_for('search_donors_page'))
 
-    cur = conn.cursor(dictionary=True)
-    cur.execute("SELECT p.user_id, d.name, d.blood_group FROM donor d JOIN profile p ON d.profile_id = p.user_id WHERE p.user_id = %s", (donor_id,))
-    donor = cur.fetchone()
-    cur.close()
+    donor = None
+    try:
+        cur = conn.cursor(dictionary=True)
+        cur.execute("SELECT p.user_id, d.name, d.blood_group FROM donor d JOIN profile p ON d.profile_id = p.user_id WHERE p.user_id = %s", (donor_id,))
+        donor = cur.fetchone()
+    except Error as e:
+        print("DB error fetching donor for request page:", e)
+    finally:
+        if conn and conn.is_connected():
+            cur.close()
+            conn.close()
 
     if not donor:
         flash("Donor not found.", "danger")
@@ -430,6 +437,10 @@ def request_donor_page(donor_id):
         Contact: {request.form.get('contact_phone')}
         Reason: {request.form.get('reason')}
         """
+        conn = get_db_connection() # Re-open connection for POST
+        if not conn:
+            flash("Database connection failed.", "danger")
+            return render_template('request-donor.html', donor=donor)
         try:
             cur = conn.cursor()
             cur.execute(
@@ -455,7 +466,7 @@ def request_donor_page(donor_id):
             print("DB error sending message:", e)
             flash("Could not send your request.", "danger")
         finally:
-            if conn.is_connected():
+            if conn and conn.is_connected():
                 conn.close()
 
     return render_template('request-donor.html', donor=donor)

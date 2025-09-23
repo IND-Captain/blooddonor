@@ -39,15 +39,14 @@
         <ul class="sidebar-nav">
             <li><a href="{{ url_for('home') }}" class="{{ 'active' if request.endpoint == 'home' else '' }}"><i class="fas fa-home" aria-hidden="true"></i><span class="link-text">Home</span></a></li>
             {% if session.user_id %}
-            <li><a href="{{ url_for('my_profile_page') }}" class="{{ 'active' if request.endpoint == 'my_profile_page' else '' }}"><i class="fas fa-user-edit" aria-hidden="true"></i><span class="link-text">My Profile</span></a></li>
+            <li><a href="{{ url_for('inbox_page') }}" class="{{ 'active' if 'inbox' in request.endpoint or 'conversation' in request.endpoint else '' }}"><i class="fas fa-inbox"></i><span class="link-text">Inbox</span> {% if unread_count > 0 %}<span class="notification-badge">{{ unread_count }}</span>{% endif %}</a></li>
             {% endif %}
-        <li><a href="{{ url_for('inbox_page') }}" class="{{ 'active' if 'inbox' in request.endpoint or 'conversation' in request.endpoint else '' }}"><i class="fas fa-inbox"></i> Inbox {% if unread_count > 0 %}<span class="notification-badge">{{ unread_count }}</span>{% endif %}</a></li>
             <li><a href="{{ url_for('get_involved_page') }}" class="{{ 'active' if request.endpoint == 'get_involved_page' else '' }}"><i class="fas fa-hands-helping" aria-hidden="true"></i><span class="link-text">Get Involved</span></a></li>
-            <li><a href="{{ url_for('search_donors_page') }}" class="{{ 'active' if request.endpoint == 'search_donors_page' else '' }}"><i class="fas fa-search" aria-hidden="true"></i><span class="link-text">Find Donors</span></a></li>
+            <li><a href="{{ url_for('search_donors_page') }}" class="{{ 'active' if request.endpoint == 'search_donors_page' else '' }}"><i class="fas fa-search" aria-hidden="true"></i><span class="link-text">Find a Donor</span></a></li>
+            {% if not session.user_id %}
             <li><a href="{{ url_for('blood_drives_page') }}" class="{{ 'active' if request.endpoint == 'blood_drives_page' else '' }}"><i class="fas fa-map-marked-alt"></i><span class="link-text">Blood Drives</span></a></li>
+            {% endif %}
             <li><a href="{{ url_for('leaderboard_page') }}" class="{{ 'active' if request.endpoint == 'leaderboard_page' else '' }}"><i class="fas fa-trophy" aria-hidden="true"></i><span class="link-text">Leaderboard</span></a></li>
-            <li><a href="{{ url_for('faqs_page') }}" class="{{ 'active' if request.endpoint == 'faqs_page' else '' }}"><i class="fas fa-question-circle" aria-hidden="true"></i><span class="link-text">FAQs</span></a></li>
-            <li><a href="{{ url_for('admin_login_page') }}" class="{{ 'active' if 'admin' in request.endpoint else '' }}"><i class="fas fa-user-shield" aria-hidden="true"></i><span class="link-text">Admin</span></a></li>
         </ul>
         <div class="sidebar-footer">
             <div class="dark-mode-toggle">
@@ -69,10 +68,12 @@
                 <nav class="nav-links" role="navigation" aria-label="Main navigation">
                     <a href="{{ url_for('home') }}" class="{{ 'active' if request.endpoint == 'home' else '' }}">Home</a>
                     <a href="{{ url_for('get_involved_page') }}" class="{{ 'active' if request.endpoint == 'get_involved_page' else '' }}">Get Involved</a>
-                    <a href="{{ url_for('search_donors_page') }}" class="{{ 'active' if request.endpoint == 'search_donors_page' else '' }}">Find Donors</a>
+                    <a href="{{ url_for('search_donors_page') }}" class="{{ 'active' if request.endpoint == 'search_donors_page' else '' }}">Find a Donor</a>
+                    {% if session.user_id %}
+                    <a href="{{ url_for('inbox_page') }}" class="{{ 'active' if 'inbox' in request.endpoint else '' }}">Inbox {% if unread_count > 0 %}<span class="notification-badge">{{ unread_count }}</span>{% endif %}</a>
+                    {% else %}
                     <a href="{{ url_for('blood_drives_page') }}" class="{{ 'active' if request.endpoint == 'blood_drives_page' else '' }}">Blood Drives</a>
-                    <a href="{{ url_for('faqs_page') }}" class="{{ 'active' if request.endpoint == 'faqs_page' else '' }}">FAQs</a>
-                    <a href="{{ url_for('admin_login_page') }}" class="{{ 'active' if 'admin' in request.endpoint else '' }}">Admin</a>
+                    {% endif %}
                     <a href="{{ url_for('leaderboard_page') }}" class="icon-link {{ 'active' if request.endpoint == 'leaderboard_page' else '' }}" aria-label="Leaderboard"><i class="fas fa-trophy"></i></a>
                 </nav>
                 <a href="{{ url_for('emergency_request_page') }}" class="cta-button" aria-label="Make emergency blood request"><i class="fas fa-exclamation-triangle" aria-hidden="true"></i> Emergency</a>
@@ -84,14 +85,15 @@
         <nav class="nav-links">
             <a href="{{ url_for('home') }}">Home</a>
             {% if session.user_id %}
-            <a href="{{ url_for('my_profile_page') }}">My Profile</a>
-            {% endif %}
             <a href="{{ url_for('inbox_page') }}">Inbox</a>
+            {% endif %}
             <a href="{{ url_for('get_involved_page') }}">Get Involved</a>
+            {% if not session.user_id %}
             <a href="{{ url_for('blood_drives_page') }}">Blood Drives</a>
+            {% endif %}
             <a href="{{ url_for('search_donors_page') }}">Find Donors</a>
             <a href="{{ url_for('leaderboard_page') }}">Leaderboard</a>
-            <a href="{{ url_for('admin_login_page') }}">Admin</a>
+            <a href="{{ url_for('admin_login_page') }}" class="admin-link">Admin Portal</a>
             <a href="{{ url_for('faqs_page') }}">FAQs</a>
             <a href="{{ url_for('emergency_request_page') }}" class="cta-button">Emergency Request</a>
             {% if session.user_id %}
@@ -127,13 +129,16 @@
                         <li><a href="{{ url_for('home') }}">Home</a></li>
                         <li><a href="{{ url_for('get_involved_page') }}">Get Involved</a></li>
                         <li><a href="{{ url_for('search_donors_page') }}">Find Donors</a></li>
+                        {% if not session.user_id %}
                         <li><a href="{{ url_for('blood_drives_page') }}">Blood Drives</a></li>
+                        {% endif %}
+                        <li><a href="{{ url_for('leaderboard_page') }}">Leaderboard</a></li>
                     </ul>
                 </div>
                 <div class="footer-section">
                     <h4>Support</h4>
                     <ul class="footer-links">
-                        <li><a href="{{ url_for('faqs_page') }}">FAQs</a></li>
+                        <li><a href="{{ url_for('faqs_page') }}">Help & FAQs</a></li>
                         <li><a href="#">Contact Us</a></li>
                         <li><a href="{{ url_for('emergency_request_page') }}">Emergency Support</a></li>
                     </ul>
@@ -143,6 +148,7 @@
                     <ul class="footer-links">
                         <li><a href="#">Privacy Policy</a></li>
                         <li><a href="#">Terms of Service</a></li>
+                        <li><a href="{{ url_for('admin_login_page') }}">Admin Portal</a></li>
                     </ul>
                 </div>
             </div>

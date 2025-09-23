@@ -1,14 +1,21 @@
 {% extends "layout.html" %}
 
-{% block title %}Get Involved - Oasis{% endblock %}
+{% block title %}
+    {% if session.user_id %}Your Donor Profile - Oasis{% else %}Become a Donor - Oasis{% endif %}
+{% endblock %}
 
 {% block body_class %}page-get-involved{% endblock %}
 
 {% block content %}
         <section class="page-header">
             <div class="container">
-                <h1 class="page-title"><i class="fas fa-hands-helping"></i> Get Involved</h1>
-                <p class="page-subtitle">Whether you want to donate blood or need to request it, you're in the right place.</p>
+                {% if session.user_id %}
+                    <h1 class="page-title"><i class="fas fa-user-check"></i> Your Donor Profile</h1>
+                    <p class="page-subtitle">Review and update your donor information below.</p>
+                {% else %}
+                    <h1 class="page-title"><i class="fas fa-user-plus"></i> Become a Donor</h1>
+                    <p class="page-subtitle">Join our community of heroes by creating an account or logging in.</p>
+                {% endif %}
             </div>
         </section>
 
