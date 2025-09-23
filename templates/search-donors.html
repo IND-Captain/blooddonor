@@ -23,8 +23,8 @@
                         </select>
                     </div>
                     <div class="form-group">
-                        <label for="city" class="sr-only">City</label>
-                        <input type="text" id="city" name="city" class="form-input" placeholder="Enter City or Zip Code" required>
+                        <label for="pincode" class="sr-only">PIN Code</label>
+                        <input type="text" id="pincode" name="pincode" class="form-input" placeholder="Enter PIN Code" required>
                     </div>
                     <button type="submit" class="btn-primary"><i class="fas fa-search"></i> Search</button>
                 </form>
@@ -44,11 +44,12 @@
                                 <h3 class="donor-card-name">{{ donor.name }}</h3>
                             </div>
                             <div class="donor-card-body">
-                                <div class="donor-info"><i class="fas fa-map-marker-alt"></i> {{ donor.city }}</div>
+                                <div class="donor-info"><i class="fas fa-map-marker-alt"></i> PIN: {{ donor.pincode }}</div>
                                 <div class="donor-info"><i class="fas fa-phone"></i> {{ donor.contact }}</div>
+                                <div class="donor-info"><i class="fas fa-birthday-cake"></i> Age: {{ calculate_age(donor.dob) }}</div>
                             </div>
                             <div class="donor-card-footer">
-                                <a href="mailto:{{ donor.email }}" class="btn-secondary btn-request-donor">Request</a>
+                                <a href="{{ url_for('request_donor_page', donor_id=donor.user_id) }}" class="btn-secondary btn-request-donor">Request</a>
                             </div>
                         </div>
                         {% endfor %}

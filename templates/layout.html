@@ -1,58 +1,120 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>{% block title %}Oasis - Save Lives{% endblock %}</title>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
-<link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}" />
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Oasis - Save Lives{% endblock %}</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+
 </head>
 <body class="{% block body_class %}{% endblock %}">
-<aside class="desktop-sidebar" aria-label="Primary navigation">
-    <a href="{{ url_for('home') }}" class="logo">
-        <i class="fas fa-heart"></i>
-        <span class="link-text">Oasis</span>
-    </a>
-    <div class="profile">
-        {% if session.user_id %}
-            <a href="{{ url_for('my_profile_page') }}" style="display:flex; flex-direction:column; align-items:center;">
-                <img src="{{ session.get('profile_pic_url', url_for('static', filename='images/default-avatar.png')) }}" class="profile-img" alt="User profile picture" onerror="this.onerror=null;this.src='{{ url_for('static', filename='images/default-avatar.png') }}';" />
-                <h4 class="profile-name">{{ session.username }}</h4>
-                <a href="{{ url_for('my_profile_page') }}" class="edit-profile-link">Edit Profile</a>
-            </a>
-            <a href="{{ url_for('logout') }}" class="logout-link" style="margin-top: 10px; color: #d14;">Logout</a>
-        {% else %}
-            <a href="{{ url_for('get_involved_page') }}" class="profile-login-link">
-                <i class="fas fa-user-circle profile-icon-default"></i>
-                <h4 class="profile-name">Sign In / Sign Up</h4>
-            </a>
-        {% endif %}
-    </div>
-    <ul class="sidebar-nav">
-        <li><a href="{{ url_for('home') }}" class="{{ 'active' if request.endpoint == 'home' else '' }}"><i class="fas fa-home"></i> Home</a></li>
-        {% if session.user_id %}
-        <li><a href="{{ url_for('my_profile_page') }}" class="{{ 'active' if request.endpoint == 'my_profile_page' else '' }}"><i class="fas fa-user-edit"></i> My Profile</a></li>
-        {% endif %}
-        <li><a href="{{ url_for('get_involved_page') }}" class="{{ 'active' if request.endpoint == 'get_involved_page' else '' }}"><i class="fas fa-hands-helping"></i> Get Involved</a></li>
-        <li><a href="{{ url_for('search_donors_page') }}" class="{{ 'active' if request.endpoint == 'search_donors_page' else '' }}"><i class="fas fa-search"></i> Find Donors</a></li>
-        <li><a href="{{ url_for('leaderboard_page') }}" class="{{ 'active' if request.endpoint == 'leaderboard_page' else '' }}"><i class="fas fa-trophy"></i> Leaderboard</a></li>
-        <li><a href="{{ url_for('faqs_page') }}" class="{{ 'active' if request.endpoint == 'faqs_page' else '' }}"><i class="fas fa-question-circle"></i> FAQs</a></li>
-        <li><a href="{{ url_for('admin_login_page') }}" class="{{ 'active' if 'admin' in request.endpoint else '' }}"><i class="fas fa-user-shield"></i> Admin</a></li>
-    </ul>
-    <div class="sidebar-footer">
-        <div class="dark-mode-toggle">
-            <i class="fas fa-sun"></i>
-            <label class="switch">
-                <input type="checkbox" id="darkModeToggle" />
-                <span class="slider round"></span>
-            </label>
-            <i class="fas fa-moon"></i>
-        </div>
-    </div>
-</aside>
+    <a href="#main-content" class="sr-only">Skip to main content</a>
 
-   <footer role="contentinfo">
+    <aside class="desktop-sidebar" aria-label="Primary navigation">
+        <a href="{{ url_for('home') }}" class="logo" aria-label="Oasis Homepage">
+            <i class="fas fa-heart" aria-hidden="true"></i>
+            <span class="link-text">Oasis</span>
+        </a>
+        <div class="profile">
+            {% if session.user_id %}
+                <a href="{{ url_for('my_profile_page') }}" style="text-decoration: none; color: inherit; display: flex; flex-direction: column; align-items: center; width: 100%;">
+                    <img src="{{ session.get('profile_pic_url', url_for('static', filename='images/default-avatar.png')) }}" alt="User profile picture" class="profile-img" onerror="this.onerror=null;this.src='{{ url_for('static', filename='images/default-avatar.png') }}';">
+                    <div class="profile-info">
+                        <h4 class="profile-name">{{ session.username }}</h4>
+                        <p class="profile-detail">View Profile / Logout</p>
+                    </div>
+                </a>
+            {% else %}
+                <a href="{{ url_for('get_involved_page') }}" class="profile-login-link">
+                    <i class="fas fa-user-circle profile-icon-default"></i>
+                    <div class="profile-info">
+                        <h4 class="profile-name">Sign In / Sign Up</h4>
+                    </div>
+                </a>
+            {% endif %}
+        </div>
+        <ul class="sidebar-nav">
+            <li><a href="{{ url_for('home') }}" class="{{ 'active' if request.endpoint == 'home' else '' }}"><i class="fas fa-home" aria-hidden="true"></i><span class="link-text">Home</span></a></li>
+            {% if session.user_id %}
+            <li><a href="{{ url_for('my_profile_page') }}" class="{{ 'active' if request.endpoint == 'my_profile_page' else '' }}"><i class="fas fa-user-edit" aria-hidden="true"></i><span class="link-text">My Profile</span></a></li>
+            {% endif %}
+        <li><a href="{{ url_for('inbox_page') }}" class="{{ 'active' if 'inbox' in request.endpoint or 'conversation' in request.endpoint else '' }}"><i class="fas fa-inbox"></i> Inbox {% if unread_count > 0 %}<span class="notification-badge">{{ unread_count }}</span>{% endif %}</a></li>
+            <li><a href="{{ url_for('get_involved_page') }}" class="{{ 'active' if request.endpoint == 'get_involved_page' else '' }}"><i class="fas fa-hands-helping" aria-hidden="true"></i><span class="link-text">Get Involved</span></a></li>
+            <li><a href="{{ url_for('search_donors_page') }}" class="{{ 'active' if request.endpoint == 'search_donors_page' else '' }}"><i class="fas fa-search" aria-hidden="true"></i><span class="link-text">Find Donors</span></a></li>
+            <li><a href="{{ url_for('blood_drives_page') }}" class="{{ 'active' if request.endpoint == 'blood_drives_page' else '' }}"><i class="fas fa-map-marked-alt"></i><span class="link-text">Blood Drives</span></a></li>
+            <li><a href="{{ url_for('leaderboard_page') }}" class="{{ 'active' if request.endpoint == 'leaderboard_page' else '' }}"><i class="fas fa-trophy" aria-hidden="true"></i><span class="link-text">Leaderboard</span></a></li>
+            <li><a href="{{ url_for('faqs_page') }}" class="{{ 'active' if request.endpoint == 'faqs_page' else '' }}"><i class="fas fa-question-circle" aria-hidden="true"></i><span class="link-text">FAQs</span></a></li>
+            <li><a href="{{ url_for('admin_login_page') }}" class="{{ 'active' if 'admin' in request.endpoint else '' }}"><i class="fas fa-user-shield" aria-hidden="true"></i><span class="link-text">Admin</span></a></li>
+        </ul>
+        <div class="sidebar-footer">
+            <div class="dark-mode-toggle">
+                <i class="fas fa-sun"></i>
+                <label class="switch">
+                    <input type="checkbox" id="darkModeToggle">
+                    <span class="slider round"></span>
+                </label>
+                <i class="fas fa-moon"></i>
+            </div>
+        </div>
+    </aside>
+
+    <header id="header" role="banner">
+        <div class="container">
+            <div class="header-content">
+                <div class="menu-icon" id="menuToggle" aria-label="Toggle navigation menu" role="button" tabindex="0"><span></span><span></span><span></span></div>
+                <a href="{{ url_for('home') }}" class="logo" aria-label="Oasis Homepage"><i class="fas fa-heart" aria-hidden="true"></i><span>Oasis</span></a>
+                <nav class="nav-links" role="navigation" aria-label="Main navigation">
+                    <a href="{{ url_for('home') }}" class="{{ 'active' if request.endpoint == 'home' else '' }}">Home</a>
+                    <a href="{{ url_for('get_involved_page') }}" class="{{ 'active' if request.endpoint == 'get_involved_page' else '' }}">Get Involved</a>
+                    <a href="{{ url_for('search_donors_page') }}" class="{{ 'active' if request.endpoint == 'search_donors_page' else '' }}">Find Donors</a>
+                    <a href="{{ url_for('blood_drives_page') }}" class="{{ 'active' if request.endpoint == 'blood_drives_page' else '' }}">Blood Drives</a>
+                    <a href="{{ url_for('faqs_page') }}" class="{{ 'active' if request.endpoint == 'faqs_page' else '' }}">FAQs</a>
+                    <a href="{{ url_for('admin_login_page') }}" class="{{ 'active' if 'admin' in request.endpoint else '' }}">Admin</a>
+                    <a href="{{ url_for('leaderboard_page') }}" class="icon-link {{ 'active' if request.endpoint == 'leaderboard_page' else '' }}" aria-label="Leaderboard"><i class="fas fa-trophy"></i></a>
+                </nav>
+                <a href="{{ url_for('emergency_request_page') }}" class="cta-button" aria-label="Make emergency blood request"><i class="fas fa-exclamation-triangle" aria-hidden="true"></i> Emergency</a>
+            </div>
+        </div>
+    </header>
+
+    <div class="mobile-sidebar" id="mobileSidebar" role="navigation" aria-label="Mobile navigation">
+        <nav class="nav-links">
+            <a href="{{ url_for('home') }}">Home</a>
+            {% if session.user_id %}
+            <a href="{{ url_for('my_profile_page') }}">My Profile</a>
+            {% endif %}
+            <a href="{{ url_for('inbox_page') }}">Inbox</a>
+            <a href="{{ url_for('get_involved_page') }}">Get Involved</a>
+            <a href="{{ url_for('blood_drives_page') }}">Blood Drives</a>
+            <a href="{{ url_for('search_donors_page') }}">Find Donors</a>
+            <a href="{{ url_for('leaderboard_page') }}">Leaderboard</a>
+            <a href="{{ url_for('admin_login_page') }}">Admin</a>
+            <a href="{{ url_for('faqs_page') }}">FAQs</a>
+            <a href="{{ url_for('emergency_request_page') }}" class="cta-button">Emergency Request</a>
+            {% if session.user_id %}
+            <a href="{{ url_for('logout') }}" class="cta-button" style="background: var(--gray-600);">Logout</a>
+            {% endif %}
+        </nav>
+    </div>
+    <div class="mobile-overlay" id="mobileOverlay"></div>
+
+    <main id="main-content">
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                <div class="container" style="padding-top: 20px; padding-bottom: 0;">
+                {% for category, message in messages %}
+                    <div class="info-box flash-{{ category }}">{{ message }}</div>
+                {% endfor %}
+                </div>
+            {% endif %}
+        {% endwith %}
+        {% block content %}{% endblock %}
+    </main>
+
+    <footer role="contentinfo">
         <div class="container">
             <div class="footer-content">
                 <div class="footer-section">
@@ -65,6 +127,7 @@
                         <li><a href="{{ url_for('home') }}">Home</a></li>
                         <li><a href="{{ url_for('get_involved_page') }}">Get Involved</a></li>
                         <li><a href="{{ url_for('search_donors_page') }}">Find Donors</a></li>
+                        <li><a href="{{ url_for('blood_drives_page') }}">Blood Drives</a></li>
                     </ul>
                 </div>
                 <div class="footer-section">
@@ -88,9 +151,16 @@
             </div>
         </div>
     </footer>
-{% block content %}{% endblock %}
 
-<script src="{{ url_for('static', filename='js/script.js') }}"></script>
-{% block scripts %}{% endblock %}
+    <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
+    {% if session.user_id %}
+    <script>
+        // Establish a global socket connection if the user is logged in
+        const socket = io();
+        socket.on('connect', () => console.log('Socket connected!'));
+    </script>
+    {% endif %}
+    <script src="{{ url_for('static', filename='js/script.js') }}"></script>
+    {% block scripts %}{% endblock %}
 </body>
 </html>

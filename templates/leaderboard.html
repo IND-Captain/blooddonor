@@ -21,7 +21,7 @@
 <tr>
 <th>Rank</th>
 <th>Donor Name</th>
-<th>City</th>
+<th>PIN Code</th>
 <th>Donations</th>
 <th>Prize</th>
 </tr>
@@ -29,12 +29,16 @@
 <tbody id="leaderboard-body">
     {% if leaders %}
         {% for leader in leaders %}
-        <tr>
-            <td>{{ loop.index }}</td>
+        <tr class="animate-on-scroll">
+            <td class="
+                {% if loop.index == 1 %}rank-gold{% endif %}
+                {% if loop.index == 2 %}rank-silver{% endif %}
+                {% if loop.index == 3 %}rank-bronze{% endif %}
+            ">{{ loop.index }}</td>
             <td>{{ leader.name }}</td>
-            <td>{{ leader.city }}</td>
+            <td>{{ leader.pincode }}</td>
             <td>{{ leader.donations }}</td>
-            <td>{{ leader.prize }}</td>
+            <td><strong>{{ leader.prize }}</strong></td>
         </tr>
         {% endfor %}
     {% else %}

@@ -19,9 +19,11 @@
                     <form id="profile-edit-form" method="POST" action="{{ url_for('my_profile_page') }}" enctype="multipart/form-data">
                         <div class="form-header"><h3>Edit Your Profile</h3></div>
                         <div class="form-group profile-picture-group">
-                            <label for="profile-picture" class="form-label">Profile Picture</label>
-                            <input type="file" id="profile-picture" name="profile-picture" class="form-input" accept="image/*" disabled>
-                            <img id="picture-preview" src="{{ user.profile_picture_url or url_for('static', filename='images/default-avatar.png') }}" alt="Profile picture preview" class="profile-img-preview">
+                            <label for="profile-picture" class="form-label" style="cursor: pointer;">
+                                <span class="sr-only">Profile Picture</span>
+                                <img id="picture-preview" src="{{ url_for('static', filename=user.profile_picture_url) if user.profile_picture_url else url_for('static', filename='images/default-avatar.png') }}" alt="Profile picture preview" class="profile-img-preview">
+                            </label>
+                            <input type="file" id="profile-picture" name="profile-picture" class="form-input sr-only" accept="image/*" disabled>
                         </div>
                         <div class="form-group">
                             <label for="profile-fullname" class="form-label">Full Name</label>
@@ -36,8 +38,8 @@
                             <input type="tel" id="profile-phone" name="phone" class="form-input" value="{{ user.contact or '' }}">
                         </div>
                         <div class="form-group">
-                            <label for="profile-city" class="form-label">City</label>
-                            <input type="text" id="profile-city" name="city" class="form-input" value="{{ user.city or '' }}" required>
+                            <label for="profile-pincode" class="form-label">PIN Code</label>
+                            <input type="text" id="profile-pincode" name="pincode" class="form-input" value="{{ user.pincode or '' }}" required>
                         </div>
                         <div class="form-group">
                             <label for="profile-dob" class="form-label">Date of Birth</label>
@@ -60,6 +62,37 @@
                     {% else %}
                     <p>Could not load your profile. Please try again later.</p>
                     {% endif %}
+                </div>
+            </div>
+        </section>
+
+        <section class="donation-history-section">
+            <div class="container">
+                <div class="section-header animate-on-scroll">
+                    <h2 class="section-title"><i class="fas fa-history"></i> Donation History</h2>
+                    <p class="section-subtitle">A record of your life-saving contributions. Thank you for your generosity!</p>
+                </div>
+                <div class="history-table-container animate-on-scroll">
+                    <table class="leaderboard-table">
+                        <thead>
+                            <tr>
+                                <th>Date</th>
+                                <th>Location</th>
+                                <th>Units Donated</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for donation in donation_history %}
+                            <tr>
+                                <td>{{ donation.donation_date.strftime('%B %d, %Y') }}</td>
+                                <td>{{ donation.location }}</td>
+                                <td>{{ donation.units }}</td>
+                            </tr>
+                            {% else %}
+                            <tr><td colspan="3" style="text-align: center;">You have no recorded donations yet.</td></tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
                 </div>
             </div>
         </section>

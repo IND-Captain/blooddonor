@@ -1,0 +1,77 @@
+{% extends "layout.html" %}
+
+{% block title %}Conversation with {{ other_user.username }}{% endblock %}
+
+{% block body_class %}page-conversation{% endblock %}
+
+{% block content %}
+<section class="page-header">
+    <div class="container">
+        <h1 class="page-title"><i class="fas fa-comments"></i> Conversation with {{ other_user.username }}</h1>
+        <p class="page-subtitle">Please be respectful and coordinate donation details here.</p>
+    </div>
+</section>
+
+<section class="conversation-section">
+    <div class="container">
+        <div class="chat-container">
+            <div class="message-list">
+                {% for message in messages %}
+                <div class="message-bubble {% if message.sender_id == session.user_id %}sent{% else %}received{% endif %}">
+                    <div class="message-sender">{% if message.sender_id == session.user_id %}You{% else %}{{ message.sender_username }}{% endif %}</div>
+                    <div class="message-body">{{ message.body | nl2br }}</div>
+                    <div class="message-time">{{ message.created_at.strftime('%b %d, %I:%M %p') }}</div>
+                </div>
+                {% endfor %}
+            </div>
+            <div class="message-reply-form">
+                <form method="POST" action="{{ url_for('conversation_page', other_user_id=other_user_id) }}">
+                    <div class="form-group">
+                        <textarea name="body" class="form-textarea" placeholder="Type your reply..." required></textarea>
+                    </div>
+                    <button type="submit" class="btn-primary">
+                        <i class="fas fa-paper-plane"></i> Send Reply
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const messageList = document.querySelector('.message-list');
+        // Scroll to the bottom of the chat on page load
+        messageList.scrollTop = messageList.scrollHeight;
+
+        // Listen for new messages from the server
+        socket.on('new_message', function(data) {
+            // Only add the message if it's part of this conversation
+            if (data.sender_id === {{ other_user_id }}) {
+                const messageBubble = document.createElement('div');
+                messageBubble.classList.add('message-bubble', 'received');
+
+                messageBubble.innerHTML = `
+                    <div class="message-sender">${data.sender_username}</div>
+                    <div class="message-body">${data.body.replace(/\n/g, '<br>')}</div>
+                    <div class="message-time">${data.created_at}</div>
+                `;
+
+                messageList.appendChild(messageBubble);
+                // Scroll to the bottom to show the new message
+                messageList.scrollTop = messageList.scrollHeight;
+            }
+
+            // Update unread count if the notification badge exists
+            const unreadBadge = document.querySelector('.notification-badge');
+            if (unreadBadge) {
+                const currentCount = parseInt(unreadBadge.textContent) || 0;
+                unreadBadge.textContent = currentCount + 1;
+                unreadBadge.style.display = 'inline-block';
+            }
+        });
+    });
+</script>
+{% endblock %}

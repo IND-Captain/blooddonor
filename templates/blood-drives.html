@@ -1,0 +1,46 @@
+{% extends "layout.html" %}
+
+{% block title %}Blood Drives - Oasis{% endblock %}
+
+{% block body_class %}page-blood-drives{% endblock %}
+
+{% block content %}
+<section class="page-header">
+    <div class="container">
+        <h1 class="page-title"><i class="fas fa-map-marked-alt"></i> Upcoming Blood Drives</h1>
+        <p class="page-subtitle">Find a local event and schedule your next donation. Your contribution is vital.</p>
+    </div>
+</section>
+
+<section class="blood-drives-section">
+    <div class="container">
+        <div class="info-box">
+            <p><i class="fas fa-info-circle"></i> Donating at a blood drive is a convenient way to contribute. Find an event near you and be a hero!</p>
+        </div>
+
+        <div class="drives-grid">
+            {% if drives %}
+                {% for drive in drives %}
+                <div class="drive-card animate-on-scroll">
+                    <div class="drive-card-header">
+                        <h3 class="drive-title">{{ drive.name }}</h3>
+                        <span class="drive-organizer">by {{ drive.organizer }}</span>
+                    </div>
+                    <div class="drive-card-body">
+                        <div class="drive-info"><i class="fas fa-calendar-alt"></i> {{ drive.drive_date.strftime('%A, %B %d, %Y') }}</div>
+                        <div class="drive-info"><i class="fas fa-clock"></i> {{ drive.start_time.strftime('%I:%M %p') }} - {{ drive.end_time.strftime('%I:%M %p') }}</div>
+                        <div class="drive-info"><i class="fas fa-map-marker-alt"></i> {{ drive.location }}</div>
+                        <p class="drive-description">{{ drive.description }}</p>
+                    </div>
+                    <div class="drive-card-footer">
+                        <a href="#" class="btn-primary">Sign Up for this Drive</a>
+                    </div>
+                </div>
+                {% endfor %}
+            {% else %}
+                <p class="search-results-message">There are no upcoming blood drives scheduled at this time. Please check back soon!</p>
+            {% endif %}
+        </div>
+    </div>
+</section>
+{% endblock %}
