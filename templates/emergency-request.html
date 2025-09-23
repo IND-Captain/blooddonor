@@ -34,7 +34,7 @@
                     <div class="form-header">
                         <h3>Emergency Alert Form</h3>
                     </div>
-                    <form action="{{ url_for('emergency_request_page') }}" method="POST">
+                    <form action="{{ url_for('emergency_request_page') }}" method="POST" id="emergency-form">
                             <div class="form-group">
                                 <label for="bloodgroup" class="form-label">Required Blood Group</label>
                                 <select id="bloodgroup" name="bloodgroup" class="form-select" required>
@@ -44,11 +44,11 @@
                             </div>
                             <div class="form-group">
                                 <label for="pincode" class="form-label">Hospital PIN Code</label>
-                                <input type="text" id="pincode" name="pincode" class="form-input" placeholder="e.g., 10001" required>
+                                <input type="text" id="pincode" name="pincode" class="form-input" placeholder="e.g., 10001" required pattern="\d{5,6}" title="Please enter a valid PIN code.">
                             </div>
                             <div class="form-group">
                                 <label for="contact-phone" class="form-label">Direct Contact Phone</label>
-                                <input type="tel" id="contact-phone" name="contact-phone" class="form-input" placeholder="A phone number for immediate contact" required>
+                                <input type="tel" id="contact-phone" name="contact-phone" class="form-input" placeholder="A phone number for immediate contact" required pattern="[0-9]{10,15}">
                             </div>
                             <div class="form-group">
                                 <button type="submit" class="btn-emergency">
@@ -61,3 +61,5 @@
             </div>
         </section>
 {% endblock %}
+
+{% block scripts %}{% endblock %}

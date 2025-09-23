@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request, redirect, url_for, flash, session
+from flask import Flask, render_template, request, redirect, url_for, flash, session, jsonify
 import mysql.connector
 from mysql.connector import Error
 from werkzeug.security import generate_password_hash, check_password_hash
@@ -7,12 +7,40 @@ import os
 from werkzeug.utils import secure_filename
 from datetime import date
 from flask_socketio import SocketIO, emit
+from flask_mail import Mail, Message
+from twilio.rest import Client
+from twilio.base.exceptions import TwilioRestException
 
 app = Flask(__name__)
 app.secret_key = secrets.token_hex(32)  # Secure random secret key for sessions; store safely in prod
 UPLOAD_FOLDER = 'static/uploads/profile_pics'
 ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif'}
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
+
+# Flask-Mail configuration (replace with your actual email server details)
+app.config['MAIL_SERVER'] = 'smtp.gmail.com'  # e.g., 'smtp.gmail.com' for Gmail
+app.config['MAIL_PORT'] = 587
+app.config['MAIL_USE_TLS'] = True
+app.config['MAIL_USERNAME'] = os.environ.get('MAIL_USERNAME') # Recommended to use environment variables
+app.config['MAIL_PASSWORD'] = os.environ.get('MAIL_PASSWORD') # Recommended to use environment variables
+
+# Twilio configuration for SMS alerts
+app.config['TWILIO_ACCOUNT_SID'] = os.environ.get('TWILIO_ACCOUNT_SID')
+app.config['TWILIO_AUTH_TOKEN'] = os.environ.get('TWILIO_AUTH_TOKEN')
+app.config['TWILIO_PHONE_NUMBER'] = os.environ.get('TWILIO_PHONE_NUMBER')
+
+mail = Mail(app)
+
+# Initialize Twilio Client
+twilio_client = None
+if all([app.config['TWILIO_ACCOUNT_SID'], app.config['TWILIO_AUTH_TOKEN'], app.config['TWILIO_PHONE_NUMBER']]):
+    try:
+        twilio_client = Client(app.config['TWILIO_ACCOUNT_SID'], app.config['TWILIO_AUTH_TOKEN'])
+        print("Twilio client initialized successfully.")
+    except Exception as e:
+        print(f"Error initializing Twilio client: {e}")
+else:
+    print("Twilio credentials not fully configured. SMS sending will be disabled.")
 
 socketio = SocketIO(app)
 online_users = {} # maps user_id to sid
@@ -133,18 +161,19 @@ def get_involved_page():
                 return redirect(url_for('get_involved_page'))
 
             elif form_type == 'login':
-                identifier = request.form.get('login-email', '').strip().lower()
+                identifier = request.form.get('login-email', '').strip()
                 password = request.form.get('login-password', '')
                 if not identifier or not password:
                     flash("Please enter your credentials.", "warning")
                     return render_template('get-involved.html')
 
+                lower_identifier = identifier.lower()
                 cur = conn.cursor(dictionary=True)
                 cur.execute("""
                     SELECT p.user_id, p.username, p.password, d.profile_picture_url
                     FROM profile p LEFT JOIN donor d ON p.user_id = d.profile_id
                     WHERE p.username=%s OR p.email=%s
-                """, (identifier, identifier))
+                """, (identifier, lower_identifier))
                 user = cur.fetchone()
 
                 if user and check_password_hash(user['password'], password):
@@ -393,10 +422,135 @@ def admin_login_page():
         flash("Admin login functionality is not yet implemented.", "info")
     return render_template('admin-login.html')
 
+# ... <everything above remains unchanged> ...
+
 @app.route('/emergency-request', methods=['GET', 'POST'])
 def emergency_request_page():
+    if 'user_id' not in session:
+        flash("You must be logged in to send an emergency alert.", "warning")
+        return redirect(url_for('get_involved_page'))
+
     if request.method == 'POST':
-        flash("Emergency request has been broadcast.", "success")
+        blood_type = request.form.get('bloodgroup')
+        pincode = request.form.get('pincode')
+        contact_phone = request.form.get('contact-phone')
+        user_id = session['user_id']
+
+        if not all([blood_type, pincode, contact_phone]):
+            flash("Blood group, PIN code, and a contact phone are required for an emergency alert.", "danger")
+            return redirect(url_for('emergency_request_page'))
+
+        # Log the emergency alert to the database for auditing
+        db_conn = get_db_connection()
+        if not db_conn:
+            flash("Database connection failed. Could not log the alert.", "danger")
+            # The alert will still proceed even if logging fails.
+        else:
+            try:
+                cur = db_conn.cursor()
+                cur.execute(
+                    "INSERT INTO emergency_alerts (triggered_by_user_id, blood_group_needed, pincode, contact_phone) VALUES (%s, %s, %s, %s)",
+                    (user_id, blood_type, pincode, contact_phone)
+                )
+                db_conn.commit()
+            except Error as e:
+                print(f"Error logging emergency alert: {e}")
+                flash("An error occurred while logging the emergency alert, but the alert will still be sent.", "warning")
+            finally:
+                if db_conn.is_connected():
+                    cur.close()
+                    db_conn.close()
+                    
+        # Emit a real-time alert to online users
+        socketio.emit('emergency_alert', {'blood_type': blood_type, 'pincode': pincode}, broadcast=True)
+
+        # Find recipients by blood type AND pincode
+        recipients = get_users_by_blood_type(blood_type, pincode)
+        emergency_base = url_for("donor_response", _external=True)
+
+        email_sent_count, sms_sent_count = 0, 0
+        email_fail_count, sms_fail_count = 0, 0
+
+        try:
+            if recipients:
+                with mail.connect() as mail_conn:
+                    for email, phone_number in recipients:
+                        response_link = f"{emergency_base}?email={email}&blood_type={blood_type}"
+                        msg = Message(subject=f"🚨 Emergency Blood Request: {blood_type} Needed", sender=app.config['MAIL_USERNAME'], recipients=[email])
+                        msg.html = f"""<h2>Urgent need for {blood_type} blood!</h2><p>As a <b>{blood_type}</b> donor in your area, your help could save a life. Please respond immediately!</p><a href="{response_link}" style="background:#e63946;color:#fff;padding:12px 24px;text-decoration:none;font-weight:bold;border-radius:6px;display:inline-block;">🚑 Respond Now</a>"""
+                        try:
+                            mail_conn.send(msg)
+                            email_sent_count += 1
+                        except Exception as e:
+                            print(f"Mail Error sending to {email}: {e}")
+                            email_fail_count += 1
+
+                        if twilio_client and phone_number:
+                            try:
+                                message_body = f"URGENT Blood Request from Oasis: Type {blood_type} needed near PIN {pincode}. If you can help, please contact {contact_phone} immediately."
+                                twilio_client.messages.create(body=message_body, from_=app.config['TWILIO_PHONE_NUMBER'], to=phone_number)
+                                sms_sent_count += 1
+                            except TwilioRestException as tw_e:
+                                print(f"Twilio Error sending SMS to {phone_number}: {tw_e}")
+                                sms_fail_count += 1
+                            except Exception as e:
+                                print(f"General error sending SMS to {phone_number}: {e}")
+                                sms_fail_count += 1
+
+
+                flash_message = f"Emergency alert for {blood_type} sent to matching donors. Emails: {email_sent_count} sent"
+                if email_fail_count > 0: flash_message += f", {email_fail_count} failed."
+                else: flash_message += "."
+                if sms_sent_count > 0 or sms_fail_count > 0:
+                    flash_message += f" SMS: {sms_sent_count} sent"
+                    if sms_fail_count > 0: flash_message += f", {sms_fail_count} failed."
+                    else: flash_message += "."
+                flash(flash_message, "success" if email_fail_count == 0 and sms_fail_count == 0 else "warning")
+
+            else:
+                # Fallback: if no specific donors are found, alert everyone
+                all_users = get_all_users()
+                if not all_users:
+                    flash("❌ No registered donors in the system to alert.", "danger")
+                    return redirect(url_for('home'))
+
+                with mail.connect() as mail_conn:
+                    for email, donor_type, phone_number in all_users:
+                        response_link = f"{emergency_base}?email={email}&blood_type={blood_type}"
+                        msg = Message(subject=f"🚨 Emergency Blood Request: {blood_type} Needed", sender=app.config['MAIL_USERNAME'], recipients=[email])
+                        msg.html = f"""<h2>Urgent need for {blood_type} blood!</h2><p>You are registered as <b>{donor_type}</b>. Even if not a perfect match, please check if you can donate or help connect someone who can.</p><a href="{response_link}" style="background:#e63946;color:#fff;padding:12px 24px;text-decoration:none;font-weight:bold;border-radius:6px;display:inline-block;">🚑 Respond Now</a>"""
+                        try:
+                            mail_conn.send(msg)
+                            email_sent_count += 1
+                        except Exception as e:
+                            print(f"Mail Error sending to {email} in fallback: {e}")
+                            email_fail_count += 1
+
+                        if twilio_client and phone_number:
+                            try:
+                                message_body = f"URGENT Blood Request from Oasis: Type {blood_type} needed near PIN {pincode}. A specific match was not found, but your help may be needed. Contact {contact_phone}."
+                                twilio_client.messages.create(body=message_body, from_=app.config['TWILIO_PHONE_NUMBER'], to=phone_number)
+                                sms_sent_count += 1
+                            except TwilioRestException as tw_e:
+                                print(f"Twilio Fallback Error sending SMS to {phone_number}: {tw_e}")
+                                sms_fail_count += 1
+                            except Exception as e:
+                                print(f"General error sending SMS to {phone_number}: {e}")
+                                sms_fail_count += 1
+                
+                flash_message = f"⚠ No {blood_type} donors found in {pincode}. Alert sent to ALL {len(all_users)} donors as a fallback. Emails: {email_sent_count} sent"
+                if email_fail_count > 0: flash_message += f", {email_fail_count} failed."
+                else: flash_message += "."
+                if sms_sent_count > 0 or sms_fail_count > 0:
+                    flash_message += f" SMS: {sms_sent_count} sent"
+                    if sms_fail_count > 0: flash_message += f", {sms_fail_count} failed."
+                    else: flash_message += "."
+                flash(flash_message, "warning")
+
+        except Exception as e:
+            print(f"General Mail/SMS connection error: {e}")
+            flash("Could not establish connection to notification services. Alerts were not sent.", "danger")
+
         return redirect(url_for('home'))
     return render_template('emergency-request.html')
 
@@ -584,6 +738,93 @@ def handle_disconnect():
             del online_users[user_id]
             print(f"User {user_id} disconnected.")
             break
+
+def get_users_by_blood_type(blood_type, pincode):
+    conn = get_db_connection()
+    if not conn:
+        return []
+    try:
+        cur = conn.cursor(dictionary=False) # Return tuples
+        # Query to get emails of donors with a specific blood group and pincode
+        query = """
+            SELECT p.email, d.contact
+            FROM profile p
+            JOIN donor d ON p.user_id = d.profile_id
+            WHERE d.blood_group = %s AND d.pincode = %s AND d.contact IS NOT NULL AND d.contact != ''
+        """
+        cur.execute(query, (blood_type, pincode))
+        recipients = cur.fetchall()
+        return recipients
+    except Error as e:
+        print(f"Error fetching users by blood type: {e}")
+        return []
+    finally:
+        if conn.is_connected():
+            cur.close()
+            conn.close()
+
+def get_all_users():
+    conn = get_db_connection()
+    if not conn:
+        return []
+    try:
+        cur = conn.cursor(dictionary=False) # Return tuples
+        # Query to get email and blood group for all donors
+        query = """
+            SELECT p.email, d.blood_group, d.contact
+            FROM profile p
+            JOIN donor d ON p.user_id = d.profile_id
+            WHERE d.contact IS NOT NULL AND d.contact != ''
+        """
+        cur.execute(query)
+        users = cur.fetchall()
+        return users
+    except Error as e:
+        print(f"Error fetching all users: {e}")
+        return []
+    finally:
+        if conn.is_connected():
+            cur.close()
+            conn.close()
+
+@app.route('/donor-response')
+def donor_response():
+    email = request.args.get('email')
+    blood_type = request.args.get('blood_type')
+
+    if not email or not blood_type:
+        flash("Invalid response link.", "danger")
+        return redirect(url_for('home'))
+
+    conn = get_db_connection()
+    if not conn:
+        flash("Database connection error. Could not log your response.", "danger")
+        return redirect(url_for('home'))
+
+    try:
+        cur = conn.cursor(dictionary=True)
+        # Find user_id from email
+        cur.execute("SELECT user_id FROM profile WHERE email = %s", (email,))
+        user = cur.fetchone()
+
+        if user:
+            user_id = user['user_id']
+            # Insert into responses table
+            cur.execute("INSERT INTO responses (user_id, blood_type_needed) VALUES (%s, %s)", (user_id, blood_type))
+            # Update last_response in profile table
+            cur.execute("UPDATE profile SET last_response = CURRENT_TIMESTAMP WHERE user_id = %s", (user_id,))
+            conn.commit()
+            flash(f"Thank you for responding, {email}! Your response for {blood_type} has been logged.", "success")
+        else:
+            flash(f"Could not find a user with email {email} to log response.", "warning")
+    except Error as e:
+        print(f"Error logging donor response: {e}")
+        flash("An error occurred while logging your response.", "danger")
+    finally:
+        if conn.is_connected():
+            cur.close()
+            conn.close()
+    return redirect(url_for('home'))
 
 if __name__ == "__main__":
     socketio.run(app, debug=True)
