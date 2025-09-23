@@ -72,6 +72,27 @@ def get_involved_page():
         cur = None  # Initialize cursor to None for the finally block
         try:
 
+            if form_type == 'donor_update':
+                if 'user_id' not in session:
+                    return redirect(url_for('home'))
+
+                user_id = session['user_id']
+                name = request.form.get('name')
+                dob = request.form.get('dob')
+                gender = request.form.get('gender')
+                contact = request.form.get('contact')
+                pincode = request.form.get('pincode')
+                blood_group = request.form.get('bloodgroup')
+
+                cur = conn.cursor()
+                cur.execute(
+                    "UPDATE donor SET name=%s, dob=%s, gender=%s, contact=%s, pincode=%s, blood_group=%s WHERE profile_id=%s",
+                    (name, dob, gender, contact, pincode, blood_group, user_id)
+                )
+                conn.commit()
+                flash("Your donor profile has been updated successfully!", "success")
+                return redirect(url_for('my_profile_page'))
+
             if form_type == 'signup':
                 username = request.form.get('signup-name', '').strip()
                 email = request.form.get('signup-email', '').strip().lower()
@@ -147,7 +168,23 @@ def get_involved_page():
             if conn and conn.is_connected():
                 conn.close()
 
-    return render_template('get-involved.html')
+    # GET request logic
+    donor_data = None
+    if 'user_id' in session:
+        conn = get_db_connection()
+        if conn:
+            try:
+                cur = conn.cursor(dictionary=True)
+                cur.execute("SELECT * FROM donor WHERE profile_id = %s", (session['user_id'],))
+                donor_data = cur.fetchone()
+            except Error as e:
+                print("Error fetching donor data for form:", e)
+            finally:
+                if conn and conn.is_connected():
+                    cur.close()
+                    conn.close()
+
+    return render_template('get-involved.html', donor_data=donor_data)
 
 def allowed_file(filename):
     return '.' in filename and \

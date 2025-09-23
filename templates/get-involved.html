@@ -15,34 +15,40 @@
         <section class="form-section">
             <div class="container" id="get-involved-content">
                 {% if session.user_id %}
-                {# Show request form if user is logged in #}
+                {# Show donor profile form if user is logged in #}
                 <div class="form-container animate-on-scroll">
                     <div class="form-header">
-                        <h3><i class="fas fa-tint"></i> Make a Blood Request</h3>
-                        <p style="color: var(--gray-600); font-size: 0.9rem; margin-top: 10px;">Fill out the form below to find a donor.</p>
+                        <h3><i class="fas fa-user-check"></i> Your Donor Profile</h3>
+                        <p style="color: var(--gray-600); font-size: 0.9rem; margin-top: 10px;">Keep your information up-to-date to help us connect you with those in need.</p>
                     </div>
-                    <form action="{{ url_for('blood_request_page') }}" method="POST">
+                    <form action="{{ url_for('get_involved_page') }}" method="POST">
+                        <input type="hidden" name="form_type" value="donor_update">
                         <div class="form-group">
-                            <label for="patient-name" class="form-label">Patient's Full Name</label>
-                            <input type="text" id="patient-name" name="patient-name" class="form-input" placeholder="Enter patient's name" required>
+                            <label for="donor-name" class="form-label">Full Name</label>
+                            <input type="text" id="donor-name" name="name" class="form-input" value="{{ donor_data.name or '' }}" required>
                         </div>
                         <div class="form-group">
-                            <label for="bloodgroup" class="form-label">Required Blood Group</label>
-                            <select id="bloodgroup" name="bloodgroup" class="form-select" required>
-                                <option value="" disabled selected>Select blood group</option>
-                                <option value="A+">A+</option><option value="A-">A-</option><option value="B+">B+</option><option value="B-">B-</option><option value="AB+">AB+</option><option value="AB-">AB-</option><option value="O+">O+</option><option value="O-">O-</option>
-                            </select>
+                            <label for="donor-dob" class="form-label">Date of Birth</label>
+                            <input type="date" id="donor-dob" name="dob" class="form-input" value="{{ donor_data.dob.strftime('%Y-%m-%d') if donor_data.dob else '' }}" required>
                         </div>
                         <div class="form-group">
-                            <label for="units" class="form-label">Required Units</label>
-                            <input type="number" id="units" name="units" class="form-input" placeholder="Number of units needed" required min="1">
+                            <label for="donor-gender" class="form-label">Gender</label>
+                            <select id="donor-gender" name="gender" class="form-select" required><option value="Male" {{ 'selected' if donor_data.gender == 'Male' }}>Male</option><option value="Female" {{ 'selected' if donor_data.gender == 'Female' }}>Female</option><option value="Other" {{ 'selected' if donor_data.gender == 'Other' }}>Other</option></select>
                         </div>
                         <div class="form-group">
-                            <label for="hospital" class="form-label">Hospital Name & Address</label>
-                            <input type="text" id="hospital" name="hospital" class="form-input" placeholder="e.g., City General Hospital, New York" required>
+                            <label for="donor-contact" class="form-label">Contact Number</label>
+                            <input type="tel" id="donor-contact" name="contact" class="form-input" value="{{ donor_data.contact or '' }}" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="donor-pincode" class="form-label">PIN Code</label>
+                            <input type="text" id="donor-pincode" name="pincode" class="form-input" value="{{ donor_data.pincode or '' }}" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="donor-bloodgroup" class="form-label">Blood Group</label>
+                            <select id="donor-bloodgroup" name="bloodgroup" class="form-select" required>{% set blood_groups = ['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'] %}{% for bg in blood_groups %}<option value="{{ bg }}" {{ 'selected' if donor_data.blood_group == bg }}>{{ bg }}</option>{% endfor %}</select>
                         </div>
                         <button type="submit" class="btn-submit">
-                            <i class="fas fa-paper-plane"></i> Submit Request
+                            <i class="fas fa-save"></i> Update Donor Profile
                         </button>
                     </form>
                 </div>
